@@ -1,0 +1,253 @@
+---
+title: "Simple NEON forecasts"
+output:
+  html_document: 
+    number_sections: true
+  github_page: default
+date: '2022-08-08'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Fable forecasting {.unnumbered}
+
+
+These forecasts will implement methods from the fable package which is installed via fpp3 package. Fable models require data to be in a tidy tsibble format. 
+
+The 5 steps in the vignette are:
+
+* Tidy
+* Visualise
+* Specify
+* Evaluate
+* Forecast
+
+```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
+library(fpp3)
+library(tidyverse)
+library(imputeTS)
+```
+
+# Workflow
+## Tidy the data
+Read in the data. We can use `tsibble::fill_gaps()` to make sure the data has alll the missing values. And then using `imputeTS::na_interpolation` we can fill some of those (if small!).
+ The `group_by_key()` function is also from `tstibble` package.
+ 
+```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
+#read in the targets data
+targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aquatics-targets.csv.gz')
+
+# Tidy the data into a tsibble format
+targets_ts <-  as_tsibble(targets, key = c('variable', 'site_id'), index = 'time') %>%
+  # add NA values up to the maximum data (index)
+  fill_gaps(.full = end()) %>%
+  # Groups by the key variables which are specified in as_tibble (variable and site_id)
+  group_by_key() %>% 
+  mutate(observed = imputeTS::na_interpolation(observed, maxgap = 3))
+
+```
+```{r eval = T, echo = F}
+targets_ts
+```
+
+## Visualise the data
+```{r eval = T, echo = F, warning=FALSE}
+targets_ts %>%
+  filter(site_id %in% unique(targets_ts$site_id)[1:11]) %>%
+  ggplot(., aes(x = time, y = observed)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(variable~site_id, scales = 'free')
+
+targets_ts %>%
+  filter(site_id %in% unique(targets_ts$site_id)[12:23]) %>%
+  ggplot(., aes(x = time, y = observed)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(variable~site_id, scales = 'free')
+
+```
+
+## Specify the models
+`fable` has some simple models that can be fitted to the target data. The models are automatically fitted to each key pairing (variable, site_id). Start with:
+
+* the `NAIVE` model that assumes tomorrow == today
+* the `MEAN` model that takes the dataset mean as the estimate
+* the `SNIAVE` model that takes the value of the previous year as the estimate. `1 year` lag is needed. 
+
+```{r warning=FALSE, message =FALSE}
+# Fit the model to the data
+simple_models <- targets_ts %>%
+  model(
+    Naive = NAIVE(observed),
+    Mean = MEAN(observed),
+    SNaive = SNAIVE(observed ~ lag('1 year')))
+```
+The `glance()` function lets you look at the model and the  `augment()` looks at the residuals.
+```{r}
+simple_models %>%
+  glance()
+
+simple_models %>%
+  augment()
+```
+These residuals can be tested for 
+
+* Normality
+* Homoscedasticity
+* Autocorrelaation
+* Mean of zero
+These properties will indicate the skill of the forecast and the potential for improvement.
+
+## Forecast!
+Use the model we've specified to forecast. `h=35` specifies the horizon of the forecast, relative to the index of the data
+
+```{r, warning=FALSE, error=FALSE, message=FALSE}
+forecast_simple <- simple_models %>% forecast(h = 35)
+
+```
+
+```{r, echo=FALSE, message = FALSE, warning=FALSE}
+forecast_simple %>%
+  filter(site_id == 'SUGG') %>%
+  autoplot(targets_ts, level = NULL) +
+  coord_cartesian(xlim = c(ymd('2022-08-01'),
+                           ymd('2022-09-15'))) +
+  labs(title = 'SUGG forcecast examples')
+```
+
+The `hilo()` function allows you to specify the confidence interval e.g. `hilo(c(80, 95))` gets the 80th and 95th percentiles. 
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+forecast_simple %>%
+  filter(site_id == 'SUGG' & .model == 'SNaive') %>%
+  autoplot(targets_ts) +
+  coord_cartesian(xlim = c(ymd('2022-08-01'),
+                           ymd('2022-09-15'))) +
+  labs(title = 'SUGG seasonal naive forcecast examples')
+```
+
+We can calculate the standard deviation of the predicted values. We write a function to extract these and creat a table in the right format for EFI.
+
+```{r}
+convert.to.efi_standard <- function(df){
+  ## determine variable name
+  var <- attributes(df)$dist
+  ## Normal distribution: use distribution mean and variance
+  df %>% 
+    dplyr::mutate(sd = sqrt( distributional::variance( .data[[var]] ) ) ) %>%
+    dplyr::rename(mean = .mean) %>%
+    dplyr::select(time, site_id, .model, mean, sd) %>%
+    tidyr::pivot_longer(c(mean, sd), names_to = "parameter", values_to = var) %>%
+    dplyr::rename('predicted' = observed) %>%
+    mutate(family = "norm")
+}
+
+```
+
+```{r}
+forecast_simple_efi <- convert.to.efi_standard(forecast_simple)
+```
+```{r echo = FALSE}
+forecast_simple_efi %>%
+  filter(site_id == 'SUGG')
+```
+
+### Forecasts with `log()` transformations
+
+The fable package will automatically back-transform the forecasts whenever a transformation has been used in the model definition. The back-transformed forecast distribution is then a “transformed Normal” distribution. The prediction interval is first computed on the transformed scale, and the end points are back-transformed to give a prediction interval on the original scale. The fable package also automatically produces bias-adjusted forecasts. See [here](https://otexts.com/fpp3/ftransformations.html). 
+
+```{r  warning=FALSE, error=FALSE, message=FALSE}
+simple_models_logged <- targets_ts %>%
+  # only use logged values for chla and oxygen
+  filter(variable != 'temperature') %>%
+  model(
+    Naive = NAIVE(log(observed)),
+    Mean = MEAN(log(observed)),
+    SNaive = SNAIVE(log(observed) ~ lag('1 year')))
+```
+
+```{r, warning=FALSE, error=FALSE, message=FALSE}
+forecast_simple_logged <- simple_models_logged %>% forecast(h = 35)
+
+```
+
+```{r, echo=FALSE, message = FALSE, warning=FALSE}
+forecast_simple_logged %>%
+  filter(site_id == 'SUGG', .model == 'SNaive') %>%
+  autoplot(targets_ts) +
+  coord_cartesian(xlim = c(ymd('2022-08-01'),
+                           ymd('2022-09-15'))) +
+  labs(title = 'SUGG seasonal naive forcecast examples')
+```
+
+```{r}
+forecast_simple_logged_efi <- convert.to.efi_standard(forecast_simple_logged)
+```
+```{r echo = FALSE}
+forecast_simple_logged_efi %>%
+  filter(site_id == 'SUGG')
+```
+
+### Write the forecast for NEON EFI challenge
+
+```{r}
+forecast_simple_efi %>%
+  filter(.model == 'Naive') %>%
+    select(-.model) %>%
+  write_csv(., paste0('aquatics-', Sys.Date(), '-naive_forecast.csv'))
+
+forecast_simple_efi %>%
+  filter(.model == 'SNaive') %>%
+    select(-.model) %>%
+  write_csv(., paste0('aquatics-', Sys.Date(), '-snaive_forecast.csv'))
+
+forecast_simple_efi %>%
+  filter(.model == 'Mean') %>%
+  select(-.model) %>%
+  write_csv(., paste0('aquatics-', Sys.Date(), '-mean_forecast.csv'))
+```
+
+
+### and with transformations
+```{r}
+forecast_simple_logged_efi %>%
+  filter(.model == 'Naive') %>%
+    select(-.model) %>%
+  write_csv(., paste0('aquatics-', Sys.Date(), '-naive_logged_forecast.csv'))
+
+forecast_simple_logged_efi %>%
+  filter(.model == 'SNaive') %>%
+    select(-.model) %>%
+  write_csv(., paste0('aquatics-', Sys.Date(), '-snaive_logged_forecast.csv'))
+
+forecast_simple_logged_efi %>%
+  filter(.model == 'Mean') %>%
+    select(-.model) %>%
+  write_csv(., paste0('aquatics-', Sys.Date(), '-mean_logged_forecast.csv'))
+```
+
+
+
+## Bootstrapping
+
+The first forecasts assume a normally distributed forecast or require a transformation.
+An alternative is to use bootstrapping to obtain many possible outcomes. Here we run it 50 times across a 35 day horizon. 
+
+```{r, eval = FALSE, error = TRUE}
+targets_fit_boot <-  targets_ts %>%
+  filter(variable == 'temperature', site_id == 'PRPO') %>%
+  model(
+    `Naïve` = NAIVE(observed)
+  )
+
+bootstapped <- targets_fit_boot %>% forecast(h = 35, times = 50, bootstrap = TRUE)
+
+
+autoplot(bootstapped, subset(targets_ts, site_id == 'PRPO' & variable == 'temperature')) +
+  coord_cartesian(xlim = c(ymd('2022-08-01'),
+                           ymd('2022-09-10')))
+```
+
