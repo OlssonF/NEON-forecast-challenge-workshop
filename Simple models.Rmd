@@ -43,10 +43,16 @@ targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aqu
 # Tidy the data into a tsibble format
 targets_ts <-  as_tsibble(targets, key = c('variable', 'site_id'), index = 'time') %>%
   # add NA values up to the maximum data (index)
-  fill_gaps(.end = Sys.Date() + 1)  %>%
+  fill_gaps(.end = Sys.Date())  %>%
   # Groups by the key variables which are specified in as_tibble (variable and site_id)
   group_by_key() %>% 
-  mutate(observed = imputeTS::na_interpolation(observed, maxgap = 3))
+  # Create a copy of the column that can be filled in
+  mutate(observed_na = observed) %>%
+  # fills gaps with the last non-NA value
+  tidyr::fill(observed_na, .direction = 'down') %>%
+  # Retain all the NAs apart from today which needs to have a value (will be the previous non-NA value)
+  mutate(observed = ifelse(time == Sys.Date(), observed_na, observed)) %>%
+  select(-observed_na)
 
 ```
 ```{r eval = T, echo = F}
