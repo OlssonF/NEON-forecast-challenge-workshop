@@ -3,8 +3,9 @@ title: "Simple NEON forecasts"
 output:
   html_document: 
     number_sections: true
-  github_page: default
-date: '2022-08-08'
+  pdf_document: 
+    number_sections: true
+date: '2022-08-12'
 ---
 
 ```{r setup, include=FALSE}
@@ -42,7 +43,7 @@ targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aqu
 # Tidy the data into a tsibble format
 targets_ts <-  as_tsibble(targets, key = c('variable', 'site_id'), index = 'time') %>%
   # add NA values up to the maximum data (index)
-  fill_gaps(.full = end()) %>%
+  fill_gaps(.end = Sys.Date() + 1)  %>%
   # Groups by the key variables which are specified in as_tibble (variable and site_id)
   group_by_key() %>% 
   mutate(observed = imputeTS::na_interpolation(observed, maxgap = 3))
@@ -81,9 +82,10 @@ targets_ts %>%
 # Fit the model to the data
 simple_models <- targets_ts %>%
   model(
-    Naive = NAIVE(observed),
+    RW = RW(observed),
     Mean = MEAN(observed),
-    SNaive = SNAIVE(observed ~ lag('1 year')))
+    SNaive = SNAIVE(observed ~ lag('1 year'))
+    )
 ```
 The `glance()` function lets you look at the model and the  `augment()` looks at the residuals.
 ```{r}
@@ -122,7 +124,7 @@ The `hilo()` function allows you to specify the confidence interval e.g. `hilo(c
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
 forecast_simple %>%
-  filter(site_id == 'SUGG' & .model == 'SNaive') %>%
+  filter(site_id == 'SUGG' & .model == 'RW') %>%
   autoplot(targets_ts) +
   coord_cartesian(xlim = c(ymd('2022-08-01'),
                            ymd('2022-09-15'))) +
@@ -137,11 +139,13 @@ convert.to.efi_standard <- function(df){
   var <- attributes(df)$dist
   ## Normal distribution: use distribution mean and variance
   df %>% 
+    filter(.model == 'RW') %>%
     dplyr::mutate(sd = sqrt( distributional::variance( .data[[var]] ) ) ) %>%
     dplyr::rename(mean = .mean) %>%
     dplyr::select(time, site_id, .model, mean, sd) %>%
     tidyr::pivot_longer(c(mean, sd), names_to = "parameter", values_to = var) %>%
     dplyr::rename('predicted' = observed) %>%
+    
     mutate(family = "norm")
 }
 
@@ -230,24 +234,131 @@ forecast_simple_logged_efi %>%
 ```
 
 
+## Generate metadata
+Using the `neon4cast::generate_metadata()` function to write the metadata for each forecast.
 
-## Bootstrapping
-
-The first forecasts assume a normally distributed forecast or require a transformation.
-An alternative is to use bootstrapping to obtain many possible outcomes. Here we run it 50 times across a 35 day horizon. 
-
-```{r, eval = FALSE, error = TRUE}
-targets_fit_boot <-  targets_ts %>%
-  filter(variable == 'temperature', site_id == 'PRPO') %>%
-  model(
-    `Naïve` = NAIVE(observed)
-  )
-
-bootstapped <- targets_fit_boot %>% forecast(h = 35, times = 50, bootstrap = TRUE)
-
-
-autoplot(bootstapped, subset(targets_ts, site_id == 'PRPO' & variable == 'temperature')) +
-  coord_cartesian(xlim = c(ymd('2022-08-01'),
-                           ymd('2022-09-10')))
+Start by making the team list:
+```{r}
+team_list <- list(list(individualName = list(givenName = "Freya", 
+                                             surName = "Olsson"),
+                       organizationName = "Virginia Tech",
+                       electronicMailAddress = "freyao@vt.edu"),
+                  list(individualName = list(givenName = "Quinn", 
+                                             surName = "Thomas"),
+                       organizationName = "Virginia Tech"))
 ```
 
+Then information about the model goes in the model metadata list:
+
+```{r eval = F}
+model_metadata = list(
+  forecast = list(
+    model_description = list(
+      forecast_model_id = 'naive_baseline',  # model identifier:
+      name = 'Simple naive forecast using persistence',#Name or short description of model
+      type = 'empirical', #General type of model empirical, machine learning, process
+      repository =  # put your GitHub Repository in here
+    ),
+    initial_conditions = list(
+      status = , #options: absent, present, data_driven, propagates, assimilates
+      complexity = , #How many models states need initial conditions; delete if status = absent
+     #Delete list below if status = absent, present, or data_driven
+      propagation = list(
+        type =  , #How does your model propogate initial conditions ('ensemble' is most common)
+        size =  #number of ensemble members
+      ),
+      #Delete list below UNLESS status = assimilates
+      assimilation = list(
+        type = , #description of assimilation method
+        reference = , #reference for assimilation method
+        complexity =  #number of states that are updated with assimilation
+      )
+    ),
+    drivers = list(
+      status = , #options: absent, present, data_driven, propagates, assimilates
+      complexity = , #How many drivers are used? Delete if status = absent
+      #Delete list below if status = absent, present, or data_driven
+      propagation = list( 
+        type = , #How does your model propogate driver (ensemble or MCMC is most common
+        size = #number of ensemble or MCMC members
+        ) 
+    ),
+    parameters = list(
+      status = , #options: absent, present, data_driven, propagates, assimilates
+      complexity = , #How many parameters are included?; Delete if status = absent
+      #Delete list below below blank if status = absent, present, or data_driven
+      propagation = list(
+        type = , #how does your model propogate parameter uncertainity?
+        size = ),
+      #Delete list below UNLESS status = assimilates  
+      assimilation = list(
+        type = , #description of assimilation method
+        reference = , #reference for assimilation method
+        complexity =  #number of states that are updated with assimilation
+      )
+    ),
+    random_effects = list(
+      status = , #options: absent, present, data_driven, propagates, assimilates
+      complexity = ,  #Delete if status = absent
+      #Delete list below if status = absent, present, or data_driven
+      propagation = list(
+        type = , #How does your model propogate random effects (ensemble or MCMC is most common)
+        size =  #number of ensemble or MCMC members
+      ),
+      #Delete list below NLESS status = assimilates
+      assimilation = list(
+        type = , #description of assimilation method
+        reference = , #reference for assimilation method
+        complexity =  #number of states that are updated with assimilation
+      )
+    ),
+    process_error = list(
+      status = , #options: absent, present, data_driven, propagates, assimilates
+      complexity = , #Delete if status = absent
+      #Delete the list below below blank if status = absent, present, or data_driven
+      propagation = list(
+        type = , #How does your model propagate random effects uncertainty (ensemble or MCMC is most common) 
+        size =  #How many ensemble or MCMC members
+      ),
+      #Delete the list below UNLESS status = assimilates
+      assimilation = list(
+        type = , #Name of data assilimilation method
+        reference = , #Reference for data assimilation method
+        complexity = , #Number of states assimilate
+        covariance = , #TRUE OR FALSE
+        localization =  #TRUE OR FALSE
+      )
+    ),
+    obs_error = list(
+      status = , #options: absent, present, data_driven, propagates, assimilates
+      complexity = , #Delete if status = absent
+      #Delete the list below below blank if status = absent, present, or data_driven
+      propagation = list(
+        type = , #How does your model propagate random effects uncertainty (ensemble or MCMC is most common) 
+        size =  #How many ensemble or MCMC members
+      )
+    )
+  )
+)
+```
+
+
+```{r eval = FALSE}
+neon4cast::generate_metadata(forecast_file = file.path('C:/Users/freya/Documents/VT 2022-/neon4casting challenge/NEON-simple-baselines/aquatics-', 
+                                                       Sys.Date(), 
+                                                       '-naive_forecast.csv'),
+                             team_list = team_list,
+                             model_metadata =  model_metadata,
+                             forecast_iteration_id = ,
+                             title = ,
+                             team_name = ,
+                             intellectualRights = 
+                             ) 
+```
+
+## Submit forecast 
+Files need to be in the correct format with metadata for submission
+```{r eval = FALSE}
+neon4cast::submit(forecast_file = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.csv"),
+                  metadata = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.xml"))
+```
