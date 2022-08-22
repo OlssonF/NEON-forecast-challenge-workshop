@@ -12,67 +12,56 @@ date: '2022-08-12'
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Fable forecasting {.unnumbered}
+## Forecasting with fable {.unnumbered}
 
 
-These forecasts will implement methods from the fable package which is installed via fpp3 package. Fable models require data to be in a tidy tsibble format. 
-
-The 5 steps in the vignette are:
-
-* Tidy
-* Visualise
-* Specify
-* Evaluate
-* Forecast
+These forecasts will implement methods from the fable package which is installed via fpp3 package. Fable models require data to be in a tidy tsibble format. Tools for dealing with tsibble objects are found in the `tsibbl` package. `fable` and `fabletools` are installed as part of the `fpp3` package. 
 
 ```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 library(fpp3)
+library(tsibble)
 library(tidyverse)
-library(imputeTS)
 ```
 
 # Workflow
-## Tidy the data
-Read in the data. We can use `tsibble::fill_gaps()` to make sure the data has alll the missing values. And then using `imputeTS::na_interpolation` we can fill some of those (if small!).
- The `group_by_key()` function is also from `tstibble` package.
+## Read in the data
+Read in the data from the targets file.
  
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 #read in the targets data
 targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aquatics-targets.csv.gz')
 
-# Tidy the data into a tsibble format
-targets_ts <-  as_tsibble(targets, key = c('variable', 'site_id'), index = 'time') %>%
-  # add NA values up to the maximum data (index)
-  fill_gaps(.end = Sys.Date())  %>%
-  # Groups by the key variables which are specified in as_tibble (variable and site_id)
-  group_by_key() %>% 
-  # Create a copy of the column that can be filled in
-  mutate(observed_na = observed) %>%
-  # fills gaps with the last non-NA value
-  tidyr::fill(observed_na, .direction = 'down') %>%
-  # Retain all the NAs apart from today which needs to have a value (will be the previous non-NA value)
-  mutate(observed = ifelse(time == Sys.Date(), observed_na, observed)) %>%
-  select(-observed_na)
+# read in the sites data
+sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-targets/main/NEON_Field_Site_Metadata_20220412.csv") |> 
+  dplyr::filter(aquatics == 1)
 
 ```
 ```{r eval = T, echo = F}
-targets_ts
+targets[1000:1010,]
 ```
 
 ## Visualise the data
 ```{r eval = T, echo = F, warning=FALSE}
-targets_ts %>%
-  filter(site_id %in% unique(targets_ts$site_id)[1:11]) %>%
+targets %>%
+  filter(site_id %in% unique(targets$site_id) & 
+           variable == 'temperature') %>%
   ggplot(., aes(x = time, y = observed)) +
   geom_point() +
-  geom_line() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  facet_wrap(~site_id, scales = 'free')
+
+targets %>%
+  filter(site_id %in% unique(targets$site_id)[12:23]) %>%
+  ggplot(., aes(x = time, y = observed)) +
+  geom_point() +  
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   facet_grid(variable~site_id, scales = 'free')
 
-targets_ts %>%
-  filter(site_id %in% unique(targets_ts$site_id)[12:23]) %>%
+targets %>%
+  filter(site_id %in% unique(targets$site_id)[24:34]) %>%
   ggplot(., aes(x = time, y = observed)) +
-  geom_point() +
-  geom_line() +
+  geom_point() +   
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   facet_grid(variable~site_id, scales = 'free')
 
 ```
@@ -80,64 +69,183 @@ targets_ts %>%
 ## Specify the models
 `fable` has some simple models that can be fitted to the target data. The models are automatically fitted to each key pairing (variable, site_id). Start with:
 
-* the `NAIVE` model that assumes tomorrow == today
-* the `MEAN` model that takes the dataset mean as the estimate
-* the `SNIAVE` model that takes the value of the previous year as the estimate. `1 year` lag is needed. 
+* the `RW` model (random walk) 
+* the `SNIAVE` model that takes the value of the previous year as the estimate. Inside the model you specify `lag("1 year")`. 
+
+### Randomwalk model
+Due to differences in past observations, the forecast will start from different dates depending on the date of the last observation.
+```{r message=F}
+# For the RW model need to start the forecast at the last non-NA day and then run to 35 days in the future
+forecast_starts <- targets %>%
+  filter(!is.na(observed)) %>%
+  group_by(site_id, variable) %>%
+  # Start the day after the most recent non-NA value
+  summarise(start_date = max(time) + 1) %>% # Date 
+  mutate(h = (Sys.Date() - start_date) + 35) %>% # Horizon value 
+  ungroup() 
+
+forecast_starts
+```
+
+We write a custom function to specify the RW model and forecast. 
+Within this function:
+
+* Tidy: Takes the targets and fills with NAs, and filters up to the last non-NA value. 
+* Specify: Fits the RW on the log of observations for chlorophyll and oxygen to prevent negative values occurring. Temperature observations are not logged. 
+* Forecast: Then using this model, we run a forecast using the bootstrap option.
+
+
+The fable package will automatically back-transform the forecasts whenever a transformation has been used in the model definition.
 
 ```{r warning=FALSE, message =FALSE}
-# Fit the model to the data
-simple_models <- targets_ts %>%
-  model(
-    RW = RW(observed),
-    Mean = MEAN(observed),
-    SNaive = SNAIVE(observed ~ lag('1 year'))
+# Function carry out a random walk forecast
+RW_daily_forecast <- function(site, var, h,
+                        bootstrap = FALSE, boot_number = 200, 
+                        transformation = 'none', verbose = TRUE,...) {
+  # Work out when the forecast should start
+  # forecast_starts <- targets %>%
+  #   dplyr::filter(!is.na(observed) & site_id == site & variable == var) %>%
+  #   # Start the day after the most recent non-NA value
+  #   dplyr::summarise(start_date = max(time) + lubridate::days(1)) %>% # Date
+  #   dplyr::mutate(h = (Sys.Date() - start_date) + h) %>% # Horizon value
+  #   dplyr::ungroup()
+  
+  if (verbose == T) {
+    message(
+      site,
+      ' ',
+      var,
+      ' forecast with transformation = ',
+      transformation,
+      ' and bootstrap = ',
+      bootstrap
     )
+  }
+  
+  # filter the targets data set to the site_var pair
+  targets_use <- targets %>%
+    dplyr::filter(site_id == site,
+           variable == var) %>%
+    tsibble::as_tsibble(key = c('variable', 'site_id'), index = 'time') %>%
+    # add NA values up to today (index)
+    tsibble::fill_gaps(.end = Sys.Date()) %>%
+    # Remove the NA's put at the end, so that the forecast starts from the last day with an observation,
+    # rather than today
+    dplyr::filter(time < forecast_starts$start_date[which(forecast_starts$site_id == site &
+                                                            forecast_starts$variable == var)])
+  
+  if (nrow(targets_use) == 0) {
+    message('no targets available, no forecast run')
+    empty_df <- data.frame('variable' = character(),
+                            'site_id' = character(),
+                            '.model' = character(),
+                             'time' = lubridate::ymd(),
+                            '.rep' = character(),
+                            '.sim' = numeric())
+    
+    return(empty_df)
+    
+  } else {
+    if (transformation == 'log') {
+      RW_model <- targets_use %>%
+        fabletools::model(RW = fable::RW(log(observed)))
+    }
+    if (transformation == 'log1p') {
+      RW_model <- targets_use %>%
+        fabletools::model(RW = fable::RW(log1p(observed)))
+    }
+    if (transformation == 'none') {
+      RW_model <- targets_use %>%
+        fabletools::model(RW = fable::RW(observed))
+    }
+    if (transformation == 'sqrt') {
+      RW_model <- targets_use %>%
+        fabletools::model(RW = fable::RW(sqrt(observed)))
+    }
+    
+    if (bootstrap == T) {
+      forecast <- RW_model %>% fabletools::generate(
+          h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
+                                                            forecast_starts$variable == var)]),
+          bootstrap = T,
+          times = boot_number
+        )
+    }  else
+      forecast <- RW_model %>% fabletools::forecast(h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
+                                                            forecast_starts$variable == var)]))
+    message('forecast finished')
+    return(forecast)
+  }
+  
+}
+
 ```
-The `glance()` function lets you look at the model and the  `augment()` looks at the residuals.
-```{r}
-simple_models %>%
-  glance()
+This function takes just one site and one variable as arguments. To run across all site_id-variable combinations we can use a for loop. We need a dataframe that we can index from.  
+The number of bootstraps (`boot_number`) is set to 200 and we say that we want to log() the values - for oxygen and chlorophyll only. 
 
-simple_models %>%
-  augment()
+```{r message = F}
+site_var_combinations <- expand.grid(site = unique(targets$site_id),
+                                     var = unique(targets$variable)) %>% 
+  # No chlorophyll forecast for wadeable streams
+  filter(!(site %in% unique(sites$field_site_id)[which(sites$field_site_subtype == 'Wadeable Stream')] &
+             var == 'chla')) %>%
+  # assign the transformation depending on the variable. chla and oxygen get a log(x) transformation
+  mutate(transformation = ifelse(var %in% c('chla', 'oxygen'), 'log', 'none')) 
+
+for (i in 1:nrow(site_var_combinations)) {
+  forecast <- RW_daily_forecast(site = site_var_combinations$site[i],
+                                var = site_var_combinations$var[i],
+                                boot_number = 200,
+                                bootstrap = T,
+                                h = 35, 
+                                verbose = T,
+                                transformation = site_var_combinations$transformation[i])
+  
+  if (!exists('RW_forecast')) {
+    RW_forecast <- forecast
+  } else {
+    RW_forecast <- bind_rows(RW_forecast, forecast)
+  }
+  print(i)
+}
+
 ```
-These residuals can be tested for 
 
-* Normality
-* Homoscedasticity
-* Autocorrelaation
-* Mean of zero
-These properties will indicate the skill of the forecast and the potential for improvement.
+```{r, message = F, warning = F, echo = F}
+RW_forecast %>% 
+  filter(site_id == 'SUGG') %>%
+  ggplot(.,aes(x=time, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
+  geom_line(data = subset(targets, site_id == 'SUGG'),
+            aes(x=time, y=observed, group = 'obs'), colour = 'black') +
+  facet_wrap(~variable, scales = 'free') + 
+  theme_bw() + theme(legend.position = 'none') +
+  coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
+                           Sys.Date() + 35)) +
+  scale_x_date(expand = c(0,0), date_labels = "%d %b") +
+  labs(y = 'value', title = "Example 'random walk' forecasts for Lake Suggs (FL)") +
+  geom_vline(xintercept = Sys.Date(), linetype = 'dashed')
+```
 
-## Forecast!
+## Seasonal naive model
+
+The seasonal naive model, takes the value for the day the year before as the forecast
+
+```{r, warning = F}
+SN_model <- targets %>%
+  as_tsibble(key = c('variable', 'site_id'), index = 'time') %>%
+  # add NA values up to today (index)
+  fill_gaps(.end = Sys.Date()) %>%
+  model(SN = SNAIVE(observed ~ lag('1 year')))
+```
+
 Use the model we've specified to forecast. `h=35` specifies the horizon of the forecast, relative to the index of the data
 
 ```{r, warning=FALSE, error=FALSE, message=FALSE}
-forecast_simple <- simple_models %>% forecast(h = 35)
+simple_SN <- SN_model %>% forecast(h = 35)
 
 ```
 
-```{r, echo=FALSE, message = FALSE, warning=FALSE}
-forecast_simple %>%
-  filter(site_id == 'SUGG') %>%
-  autoplot(targets_ts, level = NULL) +
-  coord_cartesian(xlim = c(ymd('2022-08-01'),
-                           ymd('2022-09-15'))) +
-  labs(title = 'SUGG forcecast examples')
-```
-
-The `hilo()` function allows you to specify the confidence interval e.g. `hilo(c(80, 95))` gets the 80th and 95th percentiles. 
-
-```{r echo = FALSE, message=FALSE, warning=FALSE}
-forecast_simple %>%
-  filter(site_id == 'SUGG' & .model == 'RW') %>%
-  autoplot(targets_ts) +
-  coord_cartesian(xlim = c(ymd('2022-08-01'),
-                           ymd('2022-09-15'))) +
-  labs(title = 'SUGG seasonal naive forcecast examples')
-```
-
-We can calculate the standard deviation of the predicted values. We write a function to extract these and creat a table in the right format for EFI.
+We can calculate the standard deviation of the predicted values using a function to extract the variance and mean and create a table in the right format for EFI.
 
 ```{r}
 convert.to.efi_standard <- function(df){
@@ -145,65 +253,45 @@ convert.to.efi_standard <- function(df){
   var <- attributes(df)$dist
   ## Normal distribution: use distribution mean and variance
   df %>% 
-    filter(.model == 'RW') %>%
     dplyr::mutate(sd = sqrt( distributional::variance( .data[[var]] ) ) ) %>%
     dplyr::rename(mean = .mean) %>%
     dplyr::select(time, site_id, .model, mean, sd) %>%
     tidyr::pivot_longer(c(mean, sd), names_to = "parameter", values_to = var) %>%
     dplyr::rename('predicted' = observed) %>%
     
-    mutate(family = "norm")
+    mutate(family = "normal")
 }
 
 ```
 
 ```{r}
-forecast_simple_efi <- convert.to.efi_standard(forecast_simple)
+simple_SN_efi <- convert.to.efi_standard(simple_SN)
 ```
 ```{r echo = FALSE}
-forecast_simple_efi %>%
+simple_SN_efi %>%
   filter(site_id == 'SUGG')
 ```
 
-### Forecasts with `log()` transformations
-
-The fable package will automatically back-transform the forecasts whenever a transformation has been used in the model definition. The back-transformed forecast distribution is then a “transformed Normal” distribution. The prediction interval is first computed on the transformed scale, and the end points are back-transformed to give a prediction interval on the original scale. The fable package also automatically produces bias-adjusted forecasts. See [here](https://otexts.com/fpp3/ftransformations.html). 
-
-```{r  warning=FALSE, error=FALSE, message=FALSE}
-simple_models_logged <- targets_ts %>%
-  # only use logged values for chla and oxygen
-  filter(variable != 'temperature') %>%
-  model(
-    Naive = NAIVE(log(observed)),
-    Mean = MEAN(log(observed)),
-    SNaive = SNAIVE(log(observed) ~ lag('1 year')))
-```
-
-```{r, warning=FALSE, error=FALSE, message=FALSE}
-forecast_simple_logged <- simple_models_logged %>% forecast(h = 35)
-
-```
-
-```{r, echo=FALSE, message = FALSE, warning=FALSE}
-forecast_simple_logged %>%
-  filter(site_id == 'SUGG', .model == 'SNaive') %>%
-  autoplot(targets_ts) +
-  coord_cartesian(xlim = c(ymd('2022-08-01'),
-                           ymd('2022-09-15'))) +
-  labs(title = 'SUGG seasonal naive forcecast examples')
-```
-
-```{r}
-forecast_simple_logged_efi <- convert.to.efi_standard(forecast_simple_logged)
-```
-```{r echo = FALSE}
-forecast_simple_logged_efi %>%
-  filter(site_id == 'SUGG')
+```{r, message = F, warning = F, echo = F}
+simple_SN_efi %>% 
+  filter(site_id == 'SUGG') %>%
+  pivot_wider(names_from = 'parameter', values_from = 'predicted') %>%
+  ggplot(.,aes(x=time)) + 
+  geom_ribbon(aes(ymax = mean + sd, ymin = mean - sd), alpha = 0.2, fill = 'blue') +
+  geom_line(aes(y = mean)) + 
+  facet_wrap(~variable, scales = 'free') + 
+  theme_bw() +
+  coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
+                           Sys.Date() + 35)) +
+  scale_x_date(expand = c(0,0), date_labels = "%d %b") +
+  labs(y = 'value', title = "Example 'seasonal naive' forecasts for Lake Suggs (FL)") +
+  geom_vline(xintercept = Sys.Date(), linetype = 'dashed') +
+  geom_line(data = subset(targets, site_id == 'SUGG'), aes(x=time, y= observed))
 ```
 
 ### Write the forecast for NEON EFI challenge
 
-```{r}
+```{r, eval = F}
 forecast_simple_efi %>%
   filter(.model == 'Naive') %>%
     select(-.model) %>%
@@ -222,7 +310,7 @@ forecast_simple_efi %>%
 
 
 ### and with transformations
-```{r}
+```{r, eval =F}
 forecast_simple_logged_efi %>%
   filter(.model == 'Naive') %>%
     select(-.model) %>%
@@ -368,3 +456,27 @@ Files need to be in the correct format with metadata for submission
 neon4cast::submit(forecast_file = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.csv"),
                   metadata = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.xml"))
 ```
+
+### Alternative methods to loop through each variable-site_id combination
+Using the `purrr` package we can also loop through each combination of site_id and variable combination. 
+This is more effecient computationally than the for loop. You need to create a dataframe with each argument as a column. Then specify this, along with the RW function as arguments in `pmap_dfr`. The `dfr` part of the function specifies that the output should be use row_bind into a dataframe. 
+
+```{r}
+site_var_combinations <- 
+  # Gets every combination of site_id and variable
+  expand.grid(site = unique(targets$site_id),
+              var = unique(targets$variable)) %>%
+  # assign the transformation depending on the variable.
+  mutate(transformation = 'none') %>%
+  mutate(boot_number = 200,
+         h = 35,
+         bootstrap = T, 
+         verbose = T)
+
+# Runs the RW forecast for each combination of variable and site_id
+RW_forecasts <- purrr::pmap_dfr(site_var_combinations, RW_daily_forecast) 
+
+```
+
+
+
