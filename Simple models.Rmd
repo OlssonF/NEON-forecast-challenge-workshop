@@ -106,14 +106,6 @@ Within this function, there are also if statements to test whether there are who
 RW_daily_forecast <- function(site, var, h,
                         bootstrap = FALSE, boot_number = 200, 
                         transformation = 'none', verbose = TRUE,...) {
-  # Work out when the forecast should start
-  # forecast_starts <- targets %>%
-  #   dplyr::filter(!is.na(observed) & site_id == site & variable == var) %>%
-  #   # Start the day after the most recent non-NA value
-  #   dplyr::summarise(start_date = max(time) + lubridate::days(1)) %>% # Date
-  #   dplyr::mutate(h = (Sys.Date() - start_date) + h) %>% # Horizon value
-  #   dplyr::ungroup()
-  
   
   # filter the targets data set to the site_var pair
   targets_use <- targets %>%
@@ -211,11 +203,12 @@ for (i in 1:nrow(site_var_combinations)) {
   } else {
     RW_forecast <- bind_rows(RW_forecast, forecast)
   }
-  print(paste0("forecast ", i, '/', nrow(site_var_combinations)))
+  # print(paste0("forecast ", i, '/', nrow(site_var_combinations)))
 }
 
 ```
 
+This produces a forecast table or `fable`, which has columns for `variable`, `site_id`, the `.model`, the bootstrap value (`.rep`), and the prediction (`.sim`). 
 ```{r}
 RW_forecast %>%
   filter(site_id == 'SUGG')
@@ -270,7 +263,7 @@ RW_forecasts_EFI %>%
 
 ## Seasonal naive model
 An alternative approach might be to look at the historic data to make predictions about the future.The seasonal naive model sets each forecast to be equal to the last observed value from the same season (e.g., the same day of the previous year). 
-Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps`) and make it into a tsibble with `variable` and `site_id` as the keys and `time` as the index. 
+Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `time` as the index. 
 Then the `SNAIVE` model is fit with a 1 year lag. 
 
 ```{r, warning = F}
@@ -281,25 +274,25 @@ SN_model <- targets %>%
   model(SN = SNAIVE(observed ~ lag('1 year')))
 ```
 
-Use the model we've specified to forecast. `h=35` specifies the horizon of the forecast, relative to the index of the data as 35 days. If the index, in this case `time`, had a different value such as monthly, the h = value would be months. We use `forecast` rather than generate for the non-bootstrapped version. The forecast will run for each key combination (variable-site_id). 
+Use the model we've specified to forecast. `h=35` specifies the horizon of the forecast, relative to the index of the data as 35 days. If the index, in this case `time`, had a different value such as monthly, the h = value would be months. We use `forecast()` rather than `generate()` for the non-bootstrapped version. The forecast will run for each key combination (variable-site_id). 
 
 ```{r, warning=FALSE, error=FALSE, message=FALSE}
 simple_SN <- SN_model %>% forecast(h = 35, bootstrap = F)
 simple_SN
 ```
-The output from this is a `fable` with the forecast as an S3 distribution, which gives the mean and variance of the prediction. 
+The output from this function is a `fable`. The predicted are held in the `observed` column as an S3 distribution, which gives the mean and variance of the prediction. `N()` says that the distribution is normal. 
 
 We can calculate the standard deviation of the predicted values using a function to extract the variance and mean and create a table in the right format for EFI.
-This function extracts the variance from the ditribution and calculates the standard deviation (sigma). 
+This function extracts the variance from the distribution and calculates the standard deviation (sigma). 
 The columns needed for a distributional forecast are:
 
-* time: forecast timestamp
-* start_time: The start of the forecast; this should be 0 times steps in the future. This should only be one value of start_time in the file
-* site_id: NEON code for site
-* family: name of probability distribution that is described by the parameter values in the parameter column; only normal is currently allowed
-* parameter: required to be the string mu (mean) or sigma (standard deviation)
-* variable: standardized variable name from the theme
-* predicted: forecasted value for parameter in the parameter column
+* `time`: forecast timestamp
+* `start_time`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of start_time in the file
+* `site_id`: NEON code for site
+* `family`: name of probability distribution that is described by the parameter values in the parameter column; only normal is currently allowed
+* `parameter`: required to be the string mu (mean) or sigma (standard deviation)
+* `variable`: standardized variable name from the theme
+* `predicted`: forecasted value for parameter in the parameter column
 
 ```{r}
 convert.to.efi_standard <- function(df){
@@ -313,7 +306,7 @@ convert.to.efi_standard <- function(df){
     tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
     dplyr::rename('predicted' = observed) %>%
     mutate(family = "normal",
-           start_time = start_time = min(time) - lubridate::days(1)) %>%
+           start_time = min(time) - lubridate::days(1)) %>%
     select(time, start_time, site_id, family, parameter, variable, predicted)
 }
 
@@ -327,7 +320,9 @@ simple_SN_efi %>%
   filter(site_id == 'SUGG')
 ```
 
-```{r, message = F, warning = F, echo = F, fig.cap="Figure: Example 'seasonal naive' forecasts for Lake Suggs (FL). Shade values show 95% confidence intervals"}
+This is now in the right format to be submitted to the NEON4casting challenge. 
+
+```{r, message = F, warning = F, echo = F, fig.cap="Figure: Example 'seasonal naive' forecasts for Lake Suggs (FL). Shade area show 95% confidence intervals"}
 simple_SN_efi %>% 
   filter(site_id == 'SUGG') %>%
   pivot_wider(names_from = 'parameter', values_from = 'predicted') %>%
