@@ -14,8 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Forecasting with fable {.unnumbered}
 
-
-These forecasts will implement methods from the fable package which is installed via fpp3 package. Fable models require data to be in a tidy tsibble format. Tools for dealing with tsibble objects are found in the `tsibbl` package. `fable` and `fabletools` are installed as part of the `fpp3` package. 
+These forecasts will implement methods from the fable package which is installed via fpp3 package. Fable models require data to be in a tidy tsibble format. Tools for dealing with tsibble objects are found in the `tsibble` package. `fable` and `fabletools`, are installed as part of the `fpp3` package and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the tidyverse to manipulate and visualise the target data and forecasts. 
 
 ```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 library(fpp3)
@@ -25,7 +24,8 @@ library(tidyverse)
 
 # Workflow
 ## Read in the data
-Read in the data from the targets file.
+Start by reading in the data from the targets file. The data are updated regularly, with the latency for the aquatics data approximately 24-48 hrs. 
+Information on the sites can be found in the `NEON_Field_Site_Metadata_20220412.csv`. We filter this to look at just the aquatic sites. 
  
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 #read in the targets data
@@ -40,29 +40,30 @@ sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-targets/
 targets[1000:1010,]
 ```
 
+The columns of the targets file show the time step (daily for aquatics challenge), the 4 character site code (site_id), the variable being measured, and the mean daily observation. 
+
 ## Visualise the data
-```{r eval = T, echo = F, warning=FALSE}
+```{r eval = T, echo = F, warning=FALSE, fig.dim=c(10,10), fig.cap=c('Figure: Temperature targets data at aquatic sites provided by EFI for the NEON forecasting challgenge', 'Figure: Oxygen targets data at aquatic sites provided by EFI for the NEON forecasting challgenge', 'Figure: Chlorophyll targets data at aquatic sites provided by EFI for the NEON forecasting challgenge. Chlorophyll data is only available at lake and river sites')}
 targets %>%
-  filter(site_id %in% unique(targets$site_id) & 
-           variable == 'temperature') %>%
+  filter(variable == 'temperature') %>%
   ggplot(., aes(x = time, y = observed)) +
   geom_point() +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  facet_wrap(~site_id, scales = 'free')
+  facet_wrap(~site_id, scales = 'free_y')
 
 targets %>%
-  filter(site_id %in% unique(targets$site_id)[12:23]) %>%
+  filter(variable == 'oxygen') %>%
   ggplot(., aes(x = time, y = observed)) +
   geom_point() +  
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  facet_grid(variable~site_id, scales = 'free')
+  facet_wrap(~site_id, scales = 'free_y')
 
 targets %>%
-  filter(site_id %in% unique(targets$site_id)[24:34]) %>%
+  filter(variable == 'chla') %>%
   ggplot(., aes(x = time, y = observed)) +
   geom_point() +   
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  facet_grid(variable~site_id, scales = 'free')
+  facet_wrap(~site_id, scales = 'free_y')
 
 ```
 
@@ -73,7 +74,9 @@ targets %>%
 * the `SNIAVE` model that takes the value of the previous year as the estimate. Inside the model you specify `lag("1 year")`. 
 
 ### Randomwalk model
-Due to differences in past observations, the forecast will start from different dates depending on the date of the last observation.
+For RW forecasts, we simply set the forecast value be the value of the last observation. This is fine if we have data observed to yesterday but this often isn't the case. To make sure that the forecast uncertainty is reasonable, given the time since an observation, we start the forecast from the last observations and run forward 35 days into the future. Due to differences in past observations, the forecast will start from different dates depending on the date of the last observation.
+
+We calculate the `start_date` and total `horizon` for each `site_id` and `variable` combination. These can then be subsetted when we run the random walk. 
 ```{r message=F}
 # For the RW model need to start the forecast at the last non-NA day and then run to 35 days in the future
 forecast_starts <- targets %>%
@@ -87,15 +90,16 @@ forecast_starts <- targets %>%
 forecast_starts
 ```
 
-We write a custom function to specify the RW model and forecast. 
-Within this function:
+You can see that the forecasts all have different start dates, based on when the last observation was taken.
 
-* Tidy: Takes the targets and fills with NAs, and filters up to the last non-NA value. 
-* Specify: Fits the RW on the log of observations for chlorophyll and oxygen to prevent negative values occurring. Temperature observations are not logged. 
-* Forecast: Then using this model, we run a forecast using the bootstrap option.
+We write a custom function that runs the RW forecast. Within this function we:
 
+* Tidy: Takes the targets and fills with NAs, and filters up to the last non-NA value. The data must have explicit gaps for the full time series and must be in a tsibble format to run `fable`.
+* Specify: Fits the RW model. We can also specify transformations to use within the model.  The fable package will automatically back-transform the forecasts whenever a transformation has been used in the model definition. 
+* Forecast: Then using this model, we run a forecast. We can specify whether bootstrapping is used and the number of bootstraps.
 
-The fable package will automatically back-transform the forecasts whenever a transformation has been used in the model definition.
+Within this function, there are also if statements to test whether there are whole datasets missing etc. as well as messages which can be turned on/off with the `verbose = ` argument. 
+
 
 ```{r warning=FALSE, message =FALSE}
 # Function carry out a random walk forecast
@@ -110,17 +114,6 @@ RW_daily_forecast <- function(site, var, h,
   #   dplyr::mutate(h = (Sys.Date() - start_date) + h) %>% # Horizon value
   #   dplyr::ungroup()
   
-  if (verbose == T) {
-    message(
-      site,
-      ' ',
-      var,
-      ' forecast with transformation = ',
-      transformation,
-      ' and bootstrap = ',
-      bootstrap
-    )
-  }
   
   # filter the targets data set to the site_var pair
   targets_use <- targets %>%
@@ -173,7 +166,18 @@ RW_daily_forecast <- function(site, var, h,
     }  else
       forecast <- RW_model %>% fabletools::forecast(h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
                                                             forecast_starts$variable == var)]))
-    message('forecast finished')
+    
+  if (verbose == T) {
+    message(
+      site,
+      ' ',
+      var,
+      ' forecast with transformation = ',
+      transformation,
+      ' and bootstrap = ',
+      bootstrap
+    )
+  }
     return(forecast)
   }
   
@@ -183,6 +187,7 @@ RW_daily_forecast <- function(site, var, h,
 This function takes just one site and one variable as arguments. To run across all site_id-variable combinations we can use a for loop. We need a dataframe that we can index from.  
 The number of bootstraps (`boot_number`) is set to 200 and we say that we want to log() the values - for oxygen and chlorophyll only. 
 
+We can then loop through each variable and site and combine them into a single dataframe (`RW_forecasts`).
 ```{r message = F}
 site_var_combinations <- expand.grid(site = unique(targets$site_id),
                                      var = unique(targets$variable)) %>% 
@@ -198,7 +203,7 @@ for (i in 1:nrow(site_var_combinations)) {
                                 boot_number = 200,
                                 bootstrap = T,
                                 h = 35, 
-                                verbose = T,
+                                verbose = F,
                                 transformation = site_var_combinations$transformation[i])
   
   if (!exists('RW_forecast')) {
@@ -206,12 +211,18 @@ for (i in 1:nrow(site_var_combinations)) {
   } else {
     RW_forecast <- bind_rows(RW_forecast, forecast)
   }
-  print(i)
+  print(paste0("forecast ", i, '/', nrow(site_var_combinations)))
 }
 
 ```
 
-```{r, message = F, warning = F, echo = F}
+```{r}
+RW_forecast %>%
+  filter(site_id == 'SUGG')
+```
+
+
+```{r, message = F, warning = F, echo = F, fig.cap = "Figure: Example 'random walk' forecasts for Lake Suggs (FL)"}
 RW_forecast %>% 
   filter(site_id == 'SUGG') %>%
   ggplot(.,aes(x=time, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
@@ -222,13 +233,45 @@ RW_forecast %>%
   coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
                            Sys.Date() + 35)) +
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
-  labs(y = 'value', title = "Example 'random walk' forecasts for Lake Suggs (FL)") +
+  labs(y = 'value') +
   geom_vline(xintercept = Sys.Date(), linetype = 'dashed')
 ```
 
-## Seasonal naive model
+Each line on the plot is one of the ensemble members (shown in the fable as `.rep`). You can also see that not all the "forecasted" days are true forecasts (some are in the past), but we started the forecast at the last observation. Therefore when we write out the forecast and submit it we need to make sure to only submit the true forecast. 
 
-The seasonal naive model, takes the value for the day the year before as the forecast
+### Convert to EFI standard
+For an ensemble forecast the documentation specifies the following columns:
+
+* `time`: forecast timestamp
+* `start_time`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of start_time in the file
+* `site_id`: NEON code for site
+* `ensemble`: integer value for forecast replicate (i.e. `.rep`);
+* `variable`: standardized variable name from the theme 
+* `predicted`: forecasted value (from `.sim`)
+
+The challenge also requires 'true' forecasts only (i.e predictions of future observations) so we filter for times in the future. 
+```{r}
+RW_forecasts_EFI <- RW_forecast %>%
+  rename(ensemble = .rep,
+         predicted = .sim) %>%
+  # For the EFI challenge we only want the forecast for future
+  filter(time > Sys.Date()) %>%
+  group_by(site_id, variable) %>%
+  mutate(start_time = min(time) - lubridate::days(1)) %>%
+  select(time, start_time, site_id, ensemble, variable, predicted) 
+```
+
+Now we have a forecast that can be submitted to the EFI challenge.
+
+```{r}
+RW_forecasts_EFI %>%
+  filter(site_id == 'SUGG')
+```
+
+## Seasonal naive model
+An alternative approach might be to look at the historic data to make predictions about the future.The seasonal naive model sets each forecast to be equal to the last observed value from the same season (e.g., the same day of the previous year). 
+Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps`) and make it into a tsibble with `variable` and `site_id` as the keys and `time` as the index. 
+Then the `SNAIVE` model is fit with a 1 year lag. 
 
 ```{r, warning = F}
 SN_model <- targets %>%
@@ -238,14 +281,25 @@ SN_model <- targets %>%
   model(SN = SNAIVE(observed ~ lag('1 year')))
 ```
 
-Use the model we've specified to forecast. `h=35` specifies the horizon of the forecast, relative to the index of the data
+Use the model we've specified to forecast. `h=35` specifies the horizon of the forecast, relative to the index of the data as 35 days. If the index, in this case `time`, had a different value such as monthly, the h = value would be months. We use `forecast` rather than generate for the non-bootstrapped version. The forecast will run for each key combination (variable-site_id). 
 
 ```{r, warning=FALSE, error=FALSE, message=FALSE}
-simple_SN <- SN_model %>% forecast(h = 35)
-
+simple_SN <- SN_model %>% forecast(h = 35, bootstrap = F)
+simple_SN
 ```
+The output from this is a `fable` with the forecast as an S3 distribution, which gives the mean and variance of the prediction. 
 
 We can calculate the standard deviation of the predicted values using a function to extract the variance and mean and create a table in the right format for EFI.
+This function extracts the variance from the ditribution and calculates the standard deviation (sigma). 
+The columns needed for a distributional forecast are:
+
+* time: forecast timestamp
+* start_time: The start of the forecast; this should be 0 times steps in the future. This should only be one value of start_time in the file
+* site_id: NEON code for site
+* family: name of probability distribution that is described by the parameter values in the parameter column; only normal is currently allowed
+* parameter: required to be the string mu (mean) or sigma (standard deviation)
+* variable: standardized variable name from the theme
+* predicted: forecasted value for parameter in the parameter column
 
 ```{r}
 convert.to.efi_standard <- function(df){
@@ -253,13 +307,14 @@ convert.to.efi_standard <- function(df){
   var <- attributes(df)$dist
   ## Normal distribution: use distribution mean and variance
   df %>% 
-    dplyr::mutate(sd = sqrt( distributional::variance( .data[[var]] ) ) ) %>%
-    dplyr::rename(mean = .mean) %>%
-    dplyr::select(time, site_id, .model, mean, sd) %>%
-    tidyr::pivot_longer(c(mean, sd), names_to = "parameter", values_to = var) %>%
+    dplyr::mutate(sigma = sqrt( distributional::variance( .data[[var]] ) ) ) %>%
+    dplyr::rename(mu = .mean) %>%
+    dplyr::select(time, site_id, .model, mu, sigma) %>%
+    tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
     dplyr::rename('predicted' = observed) %>%
-    
-    mutate(family = "normal")
+    mutate(family = "normal",
+           start_time = start_time = min(time) - lubridate::days(1)) %>%
+    select(time, start_time, site_id, family, parameter, variable, predicted)
 }
 
 ```
@@ -272,61 +327,26 @@ simple_SN_efi %>%
   filter(site_id == 'SUGG')
 ```
 
-```{r, message = F, warning = F, echo = F}
+```{r, message = F, warning = F, echo = F, fig.cap="Figure: Example 'seasonal naive' forecasts for Lake Suggs (FL). Shade values show 95% confidence intervals"}
 simple_SN_efi %>% 
   filter(site_id == 'SUGG') %>%
   pivot_wider(names_from = 'parameter', values_from = 'predicted') %>%
   ggplot(.,aes(x=time)) + 
-  geom_ribbon(aes(ymax = mean + sd, ymin = mean - sd), alpha = 0.2, fill = 'blue') +
-  geom_line(aes(y = mean)) + 
+  geom_ribbon(aes(ymax = mu + (1.96*sigma),
+                  ymin = mu - (1.96*sigma)), alpha = 0.2, fill = 'blue') +
+  geom_line(aes(y = mu)) + 
   facet_wrap(~variable, scales = 'free') + 
   theme_bw() +
-  coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
+  coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 30,
                            Sys.Date() + 35)) +
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
-  labs(y = 'value', title = "Example 'seasonal naive' forecasts for Lake Suggs (FL)") +
+  labs(y = 'value') +
   geom_vline(xintercept = Sys.Date(), linetype = 'dashed') +
   geom_line(data = subset(targets, site_id == 'SUGG'), aes(x=time, y= observed))
 ```
+You can see that there are gaps in the forecast. This is where there was no observation for that day in the previous year. Ways we might fill these gaps in the forecast include interpolating the values, taking a day-of-year mean for all years data. 
 
 ### Write the forecast for NEON EFI challenge
-
-```{r, eval = F}
-forecast_simple_efi %>%
-  filter(.model == 'Naive') %>%
-    select(-.model) %>%
-  write_csv(., paste0('aquatics-', Sys.Date(), '-naive_forecast.csv'))
-
-forecast_simple_efi %>%
-  filter(.model == 'SNaive') %>%
-    select(-.model) %>%
-  write_csv(., paste0('aquatics-', Sys.Date(), '-snaive_forecast.csv'))
-
-forecast_simple_efi %>%
-  filter(.model == 'Mean') %>%
-  select(-.model) %>%
-  write_csv(., paste0('aquatics-', Sys.Date(), '-mean_forecast.csv'))
-```
-
-
-### and with transformations
-```{r, eval =F}
-forecast_simple_logged_efi %>%
-  filter(.model == 'Naive') %>%
-    select(-.model) %>%
-  write_csv(., paste0('aquatics-', Sys.Date(), '-naive_logged_forecast.csv'))
-
-forecast_simple_logged_efi %>%
-  filter(.model == 'SNaive') %>%
-    select(-.model) %>%
-  write_csv(., paste0('aquatics-', Sys.Date(), '-snaive_logged_forecast.csv'))
-
-forecast_simple_logged_efi %>%
-  filter(.model == 'Mean') %>%
-    select(-.model) %>%
-  write_csv(., paste0('aquatics-', Sys.Date(), '-mean_logged_forecast.csv'))
-```
-
 
 ## Generate metadata
 Using the `neon4cast::generate_metadata()` function to write the metadata for each forecast.
@@ -457,11 +477,11 @@ neon4cast::submit(forecast_file = file.path("aquatics-forecast-", Sys.Date(), "-
                   metadata = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.xml"))
 ```
 
-### Alternative methods to loop through each variable-site_id combination
+## Alternative methods to loop through each variable-site_id combination
 Using the `purrr` package we can also loop through each combination of site_id and variable combination. 
 This is more effecient computationally than the for loop. You need to create a dataframe with each argument as a column. Then specify this, along with the RW function as arguments in `pmap_dfr`. The `dfr` part of the function specifies that the output should be use row_bind into a dataframe. 
 
-```{r}
+```{r message = F}
 site_var_combinations <- 
   # Gets every combination of site_id and variable
   expand.grid(site = unique(targets$site_id),
