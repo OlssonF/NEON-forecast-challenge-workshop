@@ -304,10 +304,10 @@ convert.to.efi_standard <- function(df){
     dplyr::rename(mu = .mean) %>%
     dplyr::select(time, site_id, .model, mu, sigma) %>%
     tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
-    dplyr::rename('predicted' = observed) %>%
+    dplyr::rename('predicted' = var) %>%
     mutate(family = "normal",
            start_time = min(time) - lubridate::days(1)) %>%
-    select(time, start_time, site_id, family, parameter, variable, predicted)
+    select(any_of(c('time', 'start_time', 'site_id', 'family', 'parameter', 'variable', 'predicted')))
 }
 
 ```
