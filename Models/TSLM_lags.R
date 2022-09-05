@@ -31,6 +31,7 @@ forecast_starts <- targets %>%
   # Start the day after the most recent non-NA value
   dplyr::summarise(start_date = max(time) + lubridate::days(1)) %>% # Date
   dplyr::mutate(h = (Sys.Date() - start_date) + 30) %>% # Horizon value
+  dplyr::filter(variable == 'temperature') %>%
   dplyr::ungroup()
 
 # Past stacked weather
@@ -104,9 +105,38 @@ convert.to.efi_standard <- function(df){
                            'parameter', 'variable', 'predicted', 'ensemble')))
 }
 
+# NOAA weather - combine the past and future 
+# sometimes we need to start the forecast in the past
+past_weather <- NULL
+
+# Extract the past weather data for the met observations where we don't have 
+# temperature observations
+for (i in 1:nrow(forecast_starts)) {
+  subset_past_weather <- noaa_past_mean %>%
+    # only take the past weather that is after the last water temperature observation and 
+    # less than what is in the weather forecast
+    filter(site_id == forecast_starts$site_id[i]  &
+             time >= forecast_starts$start_date[i] &
+             time < min(noaa_future$time)) %>% 
+    slice(rep(1:n(), 31)) %>%
+    mutate()
+  past_weather <- bind_rows(past_weather, subset_past_weather)
+}
+
+# create a past "ensemble" - just repeats each value 31 times
+past_weather <- past_weather %>%
+  group_by(site_id) %>%
+  slice(rep(1:n(), 31)) %>%
+  group_by(site_id, air_temperature) %>%
+  mutate(ensemble = row_number())
+
+# Combine the past weather with weather forecast
+noaa_weather <- bind_rows(past_weather, noaa_future) %>%
+  arrange(site_id, ensemble)
 
 # Split the NOAA forecast into each ensemble
-noaa_ensembles <- split(noaa_future, f = noaa_future$ensemble)
+noaa_ensembles <- split(noaa_weather, f = noaa_weather$ensemble)
+
 # For each ensemble make this into a tsibble that can be used to forecast
 # then when this is supplied as the new_data argument it will run the forecast for each 
 # air-temperature forecast ensemble
@@ -125,7 +155,8 @@ TSLM_fable <-  TSLM_model %>%
   mutate( variable = 'temperature')
 
 # Convert to the EFI standard from a fable with distribution
-TSLM_EFI <- convert.to.efi_standard(TSLM_fable)
+TSLM_EFI <- convert.to.efi_standard(TSLM_fable)  %>%
+  filter(time > Sys.Date())
 
 forecast_file <- paste0('./Forecasts/aquatics-', min(TSLM_EFI$time), '-', team_name, '.csv.gz')
 
@@ -134,8 +165,8 @@ write_csv(TSLM_EFI, forecast_file)
 
 # Now we can submit the forecast output to the Challenge using 
 neon4cast::forecast_output_validator(forecast_file)
-neon4cast::submit(forecast_file = forecast_file,
-                  ask = T)
+# neon4cast::submit(forecast_file = forecast_file,
+#                   ask = F)
 
 # You can check on the status of your submission using
 neon4cast::check_submission(forecast_file)
