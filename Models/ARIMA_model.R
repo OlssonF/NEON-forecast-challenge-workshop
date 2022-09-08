@@ -9,7 +9,7 @@ library(lubridate)
 library(arrow)
 
 # submission information
-team_name <- "ARIMA"
+team_name <- "fable_ARIMA"
 
 team_list <- list(list(individualName = list(givenName = "Freya", 
                                              surName = "Olsson"),
@@ -158,15 +158,16 @@ ARIMA_fable <- ARIMA_model %>%
 ARIMA_EFI <- convert.to.efi_standard(ARIMA_fable) %>%
   filter(time > Sys.Date())
 
-forecast_file <- paste0('./Forecasts/aquatics-', min(ARIMA_EFI$time), '-', team_name, '.csv.gz')
+forecast_file <- paste0('aquatics-', min(ARIMA_EFI$time), '-', team_name, '.csv.gz')
 
-# write_csv(ARIMA_EFI, forecast_file)
+write_csv(ARIMA_EFI, forecast_file)
 # Submit forecast!
 
 # Now we can submit the forecast output to the Challenge using 
-# neon4cast::forecast_output_validator(forecast_file)
-# neon4cast::submit(forecast_file = forecast_file,
-#                   ask = F)
+neon4cast::forecast_output_validator(forecast_file)
+neon4cast::submit(forecast_file = forecast_file,
+                  ask = F, s3_region = 'data', s3_endpoint = 'ecoforecast.org')
+
 
 # You can check on the status of your submission using
 # neon4cast::check_submission(forecast_file)

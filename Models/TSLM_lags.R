@@ -9,7 +9,7 @@ library(lubridate)
 library(arrow)
 
 # submission information
-team_name <- "TSLM_lagged"
+team_name <- "fable_TSLM_lagged"
 
 team_list <- list(list(individualName = list(givenName = "Freya", 
                                              surName = "Olsson"),
@@ -158,15 +158,16 @@ TSLM_fable <-  TSLM_model %>%
 TSLM_EFI <- convert.to.efi_standard(TSLM_fable)  %>%
   filter(time > Sys.Date())
 
-forecast_file <- paste0('./Forecasts/aquatics-', min(TSLM_EFI$time), '-', team_name, '.csv.gz')
+forecast_file <- paste0('aquatics-', min(TSLM_EFI$time), '-', team_name, '.csv.gz')
 
-# write_csv(TSLM_EFI, forecast_file)
+write_csv(TSLM_EFI, forecast_file)
 # Submit forecast!
 
 # Now we can submit the forecast output to the Challenge using 
-# neon4cast::forecast_output_validator(forecast_file)
-# neon4cast::submit(forecast_file = forecast_file,
-#                   ask = F)
+neon4cast::forecast_output_validator(forecast_file)
+neon4cast::submit(forecast_file = forecast_file,
+                    ask = F)
+
 
 # You can check on the status of your submission using
 # neon4cast::check_submission(forecast_file)
