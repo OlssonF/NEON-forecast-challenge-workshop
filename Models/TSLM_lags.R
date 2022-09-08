@@ -29,7 +29,7 @@ forecast_starts <- targets %>%
   na.omit() %>%
   group_by(variable, site_id) %>%
   # Start the day after the most recent non-NA value
-  dplyr::summarise(start_date = max(time) + lubridate::days(1)) %>% # Date
+  dplyr::summarise(start_date = max(datetime) + lubridate::days(1)) %>% # Date
   dplyr::mutate(h = (Sys.Date() - start_date) + 30) %>% # Horizon value
   dplyr::filter(variable == 'temperature') %>%
   dplyr::ungroup()
@@ -46,10 +46,10 @@ noaa_past <- df_past |>
 
 # aggregate the past to mean daily values
 noaa_past_mean <- noaa_past |> 
-  mutate(date = as_date(time)) |> 
-  group_by(date, site_id) |> 
+  mutate(time = as_date(time)) |> 
+  group_by(time, site_id) |> 
   summarize(air_temperature = mean(predicted, na.rm = TRUE), .groups = "drop") |> 
-  rename(time = date) |> 
+  rename(datetime = time) |> 
   # convert air temp to C
   mutate(air_temperature = air_temperature - 273.15)
 
@@ -69,11 +69,11 @@ noaa_future <- df_future |>
 
 # Aggregate for each ensemble for future
 noaa_future <- noaa_future |> 
-  mutate(time = as_date(time)) |> 
-  group_by(time, site_id, ensemble) |> 
+  mutate(datetime = as_date(time)) |> 
+  group_by(datetime, site_id, ensemble) |> 
   summarize(air_temperature = mean(predicted)) |> 
   mutate(air_temperature = air_temperature - 273.15) |> 
-  select(time, site_id, air_temperature, ensemble)
+  select(datetime, site_id, air_temperature, ensemble)
 
 
 # Merge in past NOAA data into the targets file, matching by date.
@@ -81,11 +81,11 @@ noaa_future <- noaa_future |>
 # temperature to match with the historical water temperature
 
 targets <- targets |> 
-  select(time, site_id, variable, observed) |> 
+  select(datetime, site_id, variable, observed) |> 
   filter(variable == 'temperature') |> 
   pivot_wider(names_from = "variable", values_from = "observed") 
 
-targets <- left_join(targets, noaa_past_mean, by = c("time","site_id"))
+targets <- left_join(targets, noaa_past_mean, by = c("datetime","site_id"))
 
 # Function to convert to EFI standard
 convert.to.efi_standard <- function(df){
@@ -96,12 +96,12 @@ convert.to.efi_standard <- function(df){
     as_tibble() %>%
     dplyr::mutate(sigma = sqrt( distributional::variance( .data[[var]] ))) %>%
     dplyr::rename(mu = .mean) %>%
-    dplyr::select(time, site_id, .model, mu, sigma, variable, ensemble) %>%
+    dplyr::select(datetime, site_id, .model, mu, sigma, variable, ensemble) %>%
     tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
     dplyr::rename('predicted' = var) %>%
     dplyr::mutate(family = "normal",
-                  start_time = min(time) - lubridate::days(1)) %>%
-    dplyr::select(any_of(c('time', 'start_time', 'site_id', 'family', 
+                  reference_datetime = min(datetime) - lubridate::days(1)) %>%
+    dplyr::select(any_of(c('datetime', 'reference_datetime', 'site_id', 'family', 
                            'parameter', 'variable', 'predicted', 'ensemble')))
 }
 
@@ -116,8 +116,8 @@ for (i in 1:nrow(forecast_starts)) {
     # only take the past weather that is after the last water temperature observation and 
     # less than what is in the weather forecast
     filter(site_id == forecast_starts$site_id[i]  &
-             time >= forecast_starts$start_date[i] &
-             time < min(noaa_future$time)) %>% 
+             datetime >= forecast_starts$start_date[i] &
+             datetime < min(noaa_future$datetime)) %>% 
     slice(rep(1:n(), 31)) %>%
     mutate()
   past_weather <- bind_rows(past_weather, subset_past_weather)
@@ -140,11 +140,11 @@ noaa_ensembles <- split(noaa_weather, f = noaa_weather$ensemble)
 # For each ensemble make this into a tsibble that can be used to forecast
 # then when this is supplied as the new_data argument it will run the forecast for each 
 # air-temperature forecast ensemble
-test_scenarios <- lapply(noaa_ensembles, as_tsibble, key = 'site_id', index = 'time')
+test_scenarios <- lapply(noaa_ensembles, as_tsibble, key = 'site_id', index = 'datetime')
 
 # Fits separate LM with ARIMA errors for each site
 TSLM_model <- targets %>%
-  as_tsibble(key = 'site_id', index = 'time') %>%
+  as_tsibble(key = 'site_id', index = 'datetime') %>%
   # add NA values up to today (index)
   fill_gaps(.end = Sys.Date()) %>%
   model(TSLM(temperature ~ air_temperature + lag(air_temperature)))
@@ -152,13 +152,13 @@ TSLM_model <- targets %>%
 # Forecast using the fitted model
 TSLM_fable <-  TSLM_model %>%
   forecast(new_data = test_scenarios) %>%
-  mutate( variable = 'temperature')
+  mutate( variable = 'temperature') %>%
+  filter(datetime > Sys.Date())
 
 # Convert to the EFI standard from a fable with distribution
-TSLM_EFI <- convert.to.efi_standard(TSLM_fable)  %>%
-  filter(time > Sys.Date())
+TSLM_EFI <- convert.to.efi_standard(TSLM_fable)  
 
-forecast_file <- paste0('aquatics-', min(TSLM_EFI$time), '-', team_name, '.csv.gz')
+forecast_file <- paste0('aquatics-', min(TSLM_EFI$datetime), '-', team_name, '.csv.gz')
 
 write_csv(TSLM_EFI, forecast_file)
 # Submit forecast!
