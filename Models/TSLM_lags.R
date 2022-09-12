@@ -151,8 +151,9 @@ TSLM_model <- targets %>%
 
 # Forecast using the fitted model
 TSLM_fable <-  TSLM_model %>%
-  forecast(new_data = test_scenarios) %>%
-  mutate( variable = 'temperature') %>%
+  generate(new_data = test_scenarios, bootstrap = T, times = 100) %>%
+  mutate(variable = 'temperature',
+         ensemble = as.nummeric(.rep) + (100 * (as.numeric(.scenario) - 1))) %>%
   filter(datetime > Sys.Date())
 
 # Convert to the EFI standard from a fable with distribution
