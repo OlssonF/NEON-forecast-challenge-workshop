@@ -1,4 +1,4 @@
-require("feast")
+install.packages("feast")
 # Script to run forecasts
 source('./Models/ARIMA_model.R')
 message('ARIMA model submitted')
