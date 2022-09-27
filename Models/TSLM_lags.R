@@ -87,23 +87,6 @@ targets <- targets |>
 
 targets <- left_join(targets, noaa_past_mean, by = c("datetime","site_id"))
 
-# Function to convert to EFI standard
-convert.to.efi_standard <- function(df){
-  ## determine variable name
-  var <- attributes(df)$dist
-  ## Normal distribution: use distribution mean and variance
-  df %>% 
-    as_tibble() %>%
-    dplyr::mutate(sigma = sqrt( distributional::variance( .data[[var]] ))) %>%
-    dplyr::rename(mu = .mean) %>%
-    dplyr::select(datetime, site_id, .model, mu, sigma, variable, ensemble) %>%
-    tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
-    dplyr::rename('predicted' = var) %>%
-    dplyr::mutate(family = "normal",
-                  reference_datetime = min(datetime) - lubridate::days(1)) %>%
-    dplyr::select(any_of(c('datetime', 'reference_datetime', 'site_id', 'family', 
-                           'parameter', 'variable', 'predicted', 'ensemble')))
-}
 
 # NOAA weather - combine the past and future 
 # sometimes we need to start the forecast in the past
@@ -153,8 +136,21 @@ TSLM_model <- targets %>%
 TSLM_fable <-  TSLM_model %>%
   generate(new_data = test_scenarios, bootstrap = T, times = 100) %>%
   mutate(variable = 'temperature',
-         ensemble = as.nummeric(.rep) + (100 * (as.numeric(.scenario) - 1))) %>%
+         parameter = as.numeric(.rep) + (100 * (as.numeric(.scenario) - 1))) %>%
   filter(datetime > Sys.Date())
+
+# Function to convert to EFI standard
+convert.to.efi_standard <- function(df){
+  
+  df %>% 
+    as_tibble() %>%
+    dplyr::rename(predicted = .sim) %>%
+    dplyr::select(datetime, site_id, predicted, variable, parameter) %>%
+    dplyr::mutate(family = "ensemble",
+                  reference_datetime = min(datetime) - lubridate::days(1)) %>%
+    dplyr::select(any_of(c('datetime', 'reference_datetime', 'site_id', 'family', 
+                           'parameter', 'variable', 'predicted', 'ensemble')))
+}
 
 # Convert to the EFI standard from a fable with distribution
 TSLM_EFI <- convert.to.efi_standard(TSLM_fable)  
@@ -165,9 +161,9 @@ write_csv(TSLM_EFI, forecast_file)
 # Submit forecast!
 
 # Now we can submit the forecast output to the Challenge using 
-neon4cast::forecast_output_validator(forecast_file)
-neon4cast::submit(forecast_file = forecast_file,
-                    ask = F)
+# neon4cast::forecast_output_validator(forecast_file)
+# neon4cast::submit(forecast_file = forecast_file,
+#                     ask = F)
 
 
 # You can check on the status of your submission using
