@@ -1,5 +1,5 @@
 # ARIMA model with air temperature
-
+# remotes::install_github("tidyverts/fable")
 library(fable)
 library(tsibble)
 library(tidyverse)
@@ -83,27 +83,12 @@ noaa_future <- noaa_future |>
 targets <- targets |> 
   select(datetime, site_id, variable, observed) |> 
   filter(variable == 'temperature') |> 
-  pivot_wider(names_from = "variable", values_from = "observed") 
+  pivot_wider(names_from = "variable", values_from = "observed") %>%
+  filter(!is.na(temperature))
 
 targets <- left_join(targets, noaa_past_mean, by = c("datetime","site_id"))
 
-# Function to convert to EFI standard
-convert.to.efi_standard <- function(df){
-  ## determine variable name
-  var <- attributes(df)$dist
-  ## Normal distribution: use distribution mean and variance
-  df %>% 
-    as_tibble() %>%
-    dplyr::mutate(sigma = sqrt( distributional::variance( .data[[var]] ))) %>%
-    dplyr::rename(mu = .mean) %>%
-    dplyr::select(datetime, site_id, .model, mu, sigma, variable, ensemble) %>%
-    tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
-    dplyr::rename('predicted' = var) %>%
-    dplyr::mutate(family = "normal",
-                  reference_datetime = min(datetime) - lubridate::days(1)) %>%
-    dplyr::select(any_of(c('datetime', 'reference_datetime', 'site_id', 'family', 
-                           'parameter', 'variable', 'predicted', 'ensemble')))
-}
+
 
 # NOAA weather - combine the past and future 
 # sometimes we need to start the forecast in the past
@@ -118,21 +103,24 @@ for (i in 1:nrow(forecast_starts)) {
     filter(site_id == forecast_starts$site_id[i]  &
              datetime >= forecast_starts$start_date[i] &
              datetime < min(noaa_future$datetime)) %>% 
-    slice(rep(1:n(), 31)) %>%
-    mutate()
+    # create a past "ensemble" - just repeats each value 31 times
+    slice(rep(1:n(), 31))
   past_weather <- bind_rows(past_weather, subset_past_weather)
 }
 
-# create a past "ensemble" - just repeats each value 31 times
+
 past_weather <- past_weather %>%
-  group_by(site_id) %>%
-  slice(rep(1:n(), 31)) %>%
   group_by(site_id, air_temperature) %>%
   mutate(ensemble = row_number())
 
+
 # Combine the past weather with weather forecast
 noaa_weather <- bind_rows(past_weather, noaa_future) %>%
-  arrange(site_id, ensemble)
+  arrange(site_id, ensemble)# %>%
+  # full_join(., start_forecast, by = 'site_id') %>%
+  # filter(datetime >= start) %>%
+  # select(-start) %>%
+  # ungroup()
 
 # Split the NOAA forecast into each ensemble
 noaa_ensembles <- split(noaa_weather, f = noaa_weather$ensemble)
@@ -144,18 +132,32 @@ test_scenarios <- lapply(noaa_ensembles, as_tsibble, key = 'site_id', index = 'd
 # Fits separate LM with ARIMA errors for each site
 ARIMA_model <- targets %>%
   as_tsibble(key = 'site_id', index = 'datetime') %>%
-  # add NA values up to today (index)
-  fill_gaps(.end = Sys.Date()) %>%
+  # add NA values for explicit gaps
+  fill_gaps() %>%
   model(ARIMA(temperature ~ air_temperature)) 
 
 # Forecast using the fitted model
 ARIMA_fable <- ARIMA_model %>%
-  forecast(new_data = test_scenarios)  %>%
-  mutate(variable = 'temperature')  %>%
+  generate(new_data = test_scenarios, bootstrap = T, times = 100) %>%
+  mutate(variable = 'temperature',
+         # Recode the ensemble number based on the scenario and replicate
+         parameter = as.numeric(.rep) + (100 * (as.numeric(.scenario) - 1)))  %>%
   filter(datetime > Sys.Date())
 
 
-# Convert to the EFI standard from a fable with distribution
+# Function to convert to EFI standard
+convert.to.efi_standard <- function(df){
+  
+  df %>% 
+    as_tibble() %>%
+    dplyr::rename(predicted = .sim) %>%
+    dplyr::select(datetime, site_id, predicted, variable, parameter) %>%
+    dplyr::mutate(family = "ensemble",
+                  reference_datetime = min(datetime) - lubridate::days(1)) %>%
+    dplyr::select(any_of(c('datetime', 'reference_datetime', 'site_id', 'family', 
+                           'parameter', 'variable', 'predicted', 'ensemble')))
+}
+
 ARIMA_EFI <- convert.to.efi_standard(ARIMA_fable)
   
 
@@ -165,9 +167,9 @@ write_csv(ARIMA_EFI, forecast_file)
 # Submit forecast!
 
 # Now we can submit the forecast output to the Challenge using 
-neon4cast::forecast_output_validator(forecast_file)
-neon4cast::submit(forecast_file = forecast_file,
-                  ask = F, s3_region = 'data', s3_endpoint = 'ecoforecast.org')
+# neon4cast::forecast_output_validator(forecast_file)
+# neon4cast::submit(forecast_file = forecast_file,
+#                   ask = F, s3_region = 'data', s3_endpoint = 'ecoforecast.org')
 
 
 # You can check on the status of your submission using
