@@ -161,9 +161,9 @@ write_csv(TSLM_EFI, forecast_file)
 # Submit forecast!
 
 # Now we can submit the forecast output to the Challenge using 
-# neon4cast::forecast_output_validator(forecast_file)
-# neon4cast::submit(forecast_file = forecast_file,
-#                     ask = F)
+neon4cast::forecast_output_validator(forecast_file)
+neon4cast::submit(forecast_file = forecast_file,
+                    ask = F)
 
 
 # You can check on the status of your submission using
