@@ -1,4 +1,8 @@
-install.packages("feast")
+installed_packages <- installed.packages()
+if (is.element('feasts', installed_packages) == F) {
+  install.packages('feast')
+}
+
 # Script to run forecasts
 source('./Models/ARIMA_model.R')
 message('ARIMA model submitted')
