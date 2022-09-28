@@ -101,7 +101,7 @@ for (i in 1:nrow(forecast_starts)) {
     filter(site_id == forecast_starts$site_id[i]  &
              datetime >= forecast_starts$start_date[i] &
              datetime < min(noaa_future$datetime)) %>% 
-    slice(rep(1:n(), 31)) %>%
+    # slice(rep(1:n(), 31)) %>%
     mutate()
   past_weather <- bind_rows(past_weather, subset_past_weather)
 }
@@ -114,30 +114,55 @@ past_weather <- past_weather %>%
   mutate(ensemble = row_number())
 
 # Combine the past weather with weather forecast
+message('creating weather ensembles')
 noaa_weather <- bind_rows(past_weather, noaa_future) %>%
   arrange(site_id, ensemble)
 
-# Split the NOAA forecast into each ensemble
-noaa_ensembles <- split(noaa_weather, f = noaa_weather$ensemble)
+message('starting TSLM model fitting and forecast generations')
+TSLM_fable <- NULL
 
-# For each ensemble make this into a tsibble that can be used to forecast
-# then when this is supplied as the new_data argument it will run the forecast for each 
-# air-temperature forecast ensemble
-test_scenarios <- lapply(noaa_ensembles, as_tsibble, key = 'site_id', index = 'datetime')
-
-# Fits separate LM with ARIMA errors for each site
-TSLM_model <- targets %>%
-  as_tsibble(key = 'site_id', index = 'datetime') %>%
-  # add NA values up to today (index)
-  fill_gaps(.end = Sys.Date()) %>%
-  model(TSLM(temperature ~ air_temperature + lag(air_temperature)))
-
-# Forecast using the fitted model
-TSLM_fable <-  TSLM_model %>%
-  generate(new_data = test_scenarios, bootstrap = T, times = 100) %>%
-  mutate(variable = 'temperature',
-         parameter = as.numeric(.rep) + (100 * (as.numeric(.scenario) - 1))) %>%
-  filter(datetime > Sys.Date())
+for (i in 1:length(site_data$field_site_id)) {
+  # Loop through each site
+  site_use <- site_data$field_site_id[i]
+  # Split the NOAA forecast into each ensemble
+  noaa_ensembles <- noaa_weather %>%
+    filter(site_id == site_use,
+           ensemble != 31) %>%
+    split(., ~ ensemble)
+  
+  # For each ensemble make this into a tsibble that can be used to forecast
+  # then when this is supplied as the new_data argument it will run the forecast for each 
+  # air-temperature forecast ensemble
+  test_scenarios <- lapply(noaa_ensembles, as_tsibble, key = 'site_id', index = 'datetime')
+  
+  # Fits separate LM with ARIMA errors for each site
+  # message('fitting TSLM model')
+  targets_use <- targets %>%
+    filter(site_id == site_use) %>%
+    as_tsibble(key = 'site_id', index = 'datetime') %>%
+    # add NA values up to today (index)
+    fill_gaps(.end = Sys.Date()) 
+  
+  if (nrow(targets_use) >= 1) {
+    TSLM_model <- targets_use %>%
+      model(TSLM(temperature ~ air_temperature + lag(air_temperature)))
+    
+    # Forecast using the fitted model
+    # message('producing ensemble forecast using TSLM model')
+    TSLM_fable_site <-  TSLM_model %>%
+      generate(new_data = test_scenarios, bootstrap = T, times = 100) %>%
+      mutate(variable = 'temperature',
+             parameter = as.numeric(.rep) + (100 * (as.numeric(.scenario) - 1))) %>%
+      filter(datetime > Sys.Date())
+    
+    TSLM_fable <- bind_rows(TSLM_fable, TSLM_fable_site)
+    message('TSLM forecast for ', site_use, ' complete')
+  } else {
+    message('no forecast generated for ', site_use, ' no observations present')
+  }
+  
+  
+}
 
 # Function to convert to EFI standard
 convert.to.efi_standard <- function(df){
@@ -153,6 +178,7 @@ convert.to.efi_standard <- function(df){
 }
 
 # Convert to the EFI standard from a fable with distribution
+message('converting to EFI standard')
 TSLM_EFI <- convert.to.efi_standard(TSLM_fable)  
 
 forecast_file <- paste0('aquatics-', min(TSLM_EFI$datetime), '-', team_name, '.csv.gz')
