@@ -1,6 +1,6 @@
 installed_packages <- installed.packages()
 if (is.element('feasts', installed_packages) == F) {
-  install.packages('feast')
+  install.packages('feasts')
 }
 
 # Script to run forecasts
