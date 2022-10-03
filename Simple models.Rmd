@@ -5,7 +5,7 @@ output:
     number_sections: true
   pdf_document: 
     number_sections: true
-date: '2022-08-12'
+date: "`r Sys.Date()`"
 ---
 
 ```{r setup, include=FALSE}
@@ -46,24 +46,27 @@ The columns of the targets file show the time step (daily for aquatics challenge
 ```{r eval = T, echo = F, warning=FALSE, fig.dim=c(10,10), fig.cap=c('Figure: Temperature targets data at aquatic sites provided by EFI for the NEON forecasting challgenge', 'Figure: Oxygen targets data at aquatic sites provided by EFI for the NEON forecasting challgenge', 'Figure: Chlorophyll targets data at aquatic sites provided by EFI for the NEON forecasting challgenge. Chlorophyll data is only available at lake and river sites')}
 targets %>%
   filter(variable == 'temperature') %>%
-  ggplot(., aes(x = time, y = observed)) +
+  ggplot(., aes(x = datetime, y = observed)) +
   geom_point() +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  facet_wrap(~site_id, scales = 'free_y')
+  facet_wrap(~site_id, scales = 'free_y') +
+  labs(title = 'temperature')
 
 targets %>%
   filter(variable == 'oxygen') %>%
-  ggplot(., aes(x = time, y = observed)) +
+  ggplot(., aes(x = datetime, y = observed)) +
   geom_point() +  
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  facet_wrap(~site_id, scales = 'free_y')
+  facet_wrap(~site_id, scales = 'free_y')+
+  labs(title = 'oxygen')
 
 targets %>%
   filter(variable == 'chla') %>%
-  ggplot(., aes(x = time, y = observed)) +
+  ggplot(., aes(x = datetime, y = observed)) +
   geom_point() +   
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  facet_wrap(~site_id, scales = 'free_y')
+  facet_wrap(~site_id, scales = 'free_y')+
+  labs(title = 'chla')
 
 ```
 
@@ -83,7 +86,7 @@ forecast_starts <- targets %>%
   filter(!is.na(observed)) %>%
   group_by(site_id, variable) %>%
   # Start the day after the most recent non-NA value
-  summarise(start_date = max(time) + 1) %>% # Date 
+  summarise(start_date = max(datetime) + 1) %>% # Date 
   mutate(h = (Sys.Date() - start_date) + 35) %>% # Horizon value 
   ungroup() 
 
@@ -106,18 +109,18 @@ Within this function, there are also if statements to test whether there are who
 RW_daily_forecast <- function(site, var, h,
                         bootstrap = FALSE, boot_number = 200, 
                         transformation = 'none', verbose = TRUE,...) {
-  
+  message('starting ',site_var_combinations$site[i], ' forecast')
   # filter the targets data set to the site_var pair
   targets_use <- targets %>%
     dplyr::filter(site_id == site,
            variable == var) %>%
-    tsibble::as_tsibble(key = c('variable', 'site_id'), index = 'time') %>%
+    tsibble::as_tsibble(key = c('variable', 'site_id'), index = 'datetime') %>%
     # add NA values up to today (index)
     tsibble::fill_gaps(.end = Sys.Date()) %>%
     # Remove the NA's put at the end, so that the forecast starts from the last day with an observation,
     # rather than today
-    dplyr::filter(time < forecast_starts$start_date[which(forecast_starts$site_id == site &
-                                                            forecast_starts$variable == var)])
+    dplyr::filter(datetime < forecast_starts$start_date[which(forecast_starts$site_id == site &
+                                                                forecast_starts$variable == var)])
   
   if (nrow(targets_use) == 0) {
     message('no targets available, no forecast run')
@@ -149,15 +152,15 @@ RW_daily_forecast <- function(site, var, h,
     }
     
     if (bootstrap == T) {
-      forecast <- RW_model %>% fabletools::generate(
-          h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
-                                                            forecast_starts$variable == var)]),
-          bootstrap = T,
-          times = boot_number
-        )
+      forecast <- RW_model %>% 
+        fabletools::generate(h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
+                                                                      forecast_starts$variable == var)]),
+                             bootstrap = T,
+                             times = boot_number)
     }  else
-      forecast <- RW_model %>% fabletools::forecast(h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
-                                                            forecast_starts$variable == var)]))
+      forecast <- RW_model %>% 
+        fabletools::forecast(h = as.numeric(forecast_starts$h[which(forecast_starts$site_id == site &
+                                                                      forecast_starts$variable == var)]))
     
   if (verbose == T) {
     message(
@@ -171,6 +174,7 @@ RW_daily_forecast <- function(site, var, h,
     )
   }
     return(forecast)
+    
   }
   
 }
@@ -189,6 +193,8 @@ site_var_combinations <- expand.grid(site = unique(targets$site_id),
   # assign the transformation depending on the variable. chla and oxygen get a log(x) transformation
   mutate(transformation = ifelse(var %in% c('chla', 'oxygen'), 'log', 'none')) 
 
+RW_forecast <- NULL
+
 for (i in 1:nrow(site_var_combinations)) {
   forecast <- RW_daily_forecast(site = site_var_combinations$site[i],
                                 var = site_var_combinations$var[i],
@@ -198,12 +204,9 @@ for (i in 1:nrow(site_var_combinations)) {
                                 verbose = F,
                                 transformation = site_var_combinations$transformation[i])
   
-  if (!exists('RW_forecast')) {
-    RW_forecast <- forecast
-  } else {
-    RW_forecast <- bind_rows(RW_forecast, forecast)
-  }
-  # print(paste0("forecast ", i, '/', nrow(site_var_combinations)))
+  
+  RW_forecast <- bind_rows(RW_forecast, forecast)
+  
 }
 
 ```
@@ -218,9 +221,9 @@ RW_forecast %>%
 ```{r, message = F, warning = F, echo = F, fig.cap = "Figure: Example 'random walk' forecasts for Lake Suggs (FL)"}
 RW_forecast %>% 
   filter(site_id == 'SUGG') %>%
-  ggplot(.,aes(x=time, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
-  geom_line(data = subset(targets, site_id == 'SUGG'),
-            aes(x=time, y=observed, group = 'obs'), colour = 'black') +
+  ggplot(.,aes(x=datetime, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
+  geom_point(data = subset(targets, site_id == 'SUGG'),
+            aes(x=datetime, y=observed, group = 'obs'), colour = 'black') +
   facet_wrap(~variable, scales = 'free') + 
   theme_bw() + theme(legend.position = 'none') +
   coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
@@ -236,22 +239,24 @@ Each line on the plot is one of the ensemble members (shown in the fable as `.re
 For an ensemble forecast the documentation specifies the following columns:
 
 * `time`: forecast timestamp
-* `start_time`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of start_time in the file
+* `reference_datetime`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of reference_datetime in the file
 * `site_id`: NEON code for site
-* `ensemble`: integer value for forecast replicate (i.e. `.rep`);
+* `parameter`: integer value for forecast replicate (i.e. `.rep`);
 * `variable`: standardized variable name from the theme 
 * `predicted`: forecasted value (from `.sim`)
 
 The challenge also requires 'true' forecasts only (i.e predictions of future observations) so we filter for times in the future. 
 ```{r}
 RW_forecasts_EFI <- RW_forecast %>%
-  rename(ensemble = .rep,
+  rename(parameter = .rep,
          predicted = .sim) %>%
   # For the EFI challenge we only want the forecast for future
-  filter(time > Sys.Date()) %>%
+  filter(datetime > Sys.Date()) %>%
   group_by(site_id, variable) %>%
-  mutate(start_time = min(time) - lubridate::days(1)) %>%
-  select(time, start_time, site_id, ensemble, variable, predicted) 
+  mutate(reference_datetime = min(datetime) - lubridate::days(1),
+         family = 'ensemble',
+         model_id = 'GLEON_RW') %>%
+  select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, predicted) 
 ```
 
 Now we have a forecast that can be submitted to the EFI challenge.
@@ -268,7 +273,7 @@ Then the `SNAIVE` model is fit with a 1 year lag.
 
 ```{r, warning = F}
 SN_model <- targets %>%
-  as_tsibble(key = c('variable', 'site_id'), index = 'time') %>%
+  as_tsibble(key = c('variable', 'site_id'), index = 'datetime') %>%
   # add NA values up to today (index)
   fill_gaps(.end = Sys.Date()) %>%
   model(SN = SNAIVE(observed ~ lag('1 year')))
@@ -287,10 +292,10 @@ This function extracts the variance from the distribution and calculates the sta
 The columns needed for a distributional forecast are:
 
 * `time`: forecast timestamp
-* `start_time`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of start_time in the file
+* `reference_datetime`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of reference_datetime in the file
 * `site_id`: NEON code for site
-* `family`: name of probability distribution that is described by the parameter values in the parameter column; only normal is currently allowed
-* `parameter`: required to be the string mu (mean) or sigma (standard deviation)
+* `family`: name of probability distribution that is described by the parameter values in the parameter column; only normal or ensemble is currently allowed
+* `parameter`: required to be the string mu (mean) or sigma (standard deviation) or the ensemble number
 * `variable`: standardized variable name from the theme
 * `predicted`: forecasted value for parameter in the parameter column
 
@@ -302,12 +307,13 @@ convert.to.efi_standard <- function(df){
   df %>% 
     dplyr::mutate(sigma = sqrt( distributional::variance( .data[[var]] ) ) ) %>%
     dplyr::rename(mu = .mean) %>%
-    dplyr::select(time, site_id, .model, mu, sigma) %>%
+    dplyr::select(datetime, site_id, .model, mu, sigma) %>%
     tidyr::pivot_longer(c(mu, sigma), names_to = "parameter", values_to = var) %>%
     dplyr::rename('predicted' = var) %>%
     mutate(family = "normal",
-           start_time = min(time) - lubridate::days(1)) %>%
-    select(any_of(c('time', 'start_time', 'site_id', 'family', 'parameter', 'variable', 'predicted')))
+           reference_datetime = min(datetime) - lubridate::days(1),
+           model_id = 'GLEON_SN') %>%
+    select(any_of(c('model_id', 'datetime', 'reference_datetime', 'site_id', 'family', 'parameter', 'variable', 'predicted')))
 }
 
 ```
@@ -326,7 +332,7 @@ This is now in the right format to be submitted to the NEON4casting challenge.
 simple_SN_efi %>% 
   filter(site_id == 'SUGG') %>%
   pivot_wider(names_from = 'parameter', values_from = 'predicted') %>%
-  ggplot(.,aes(x=time)) + 
+  ggplot(.,aes(x=datetime)) + 
   geom_ribbon(aes(ymax = mu + (1.96*sigma),
                   ymin = mu - (1.96*sigma)), alpha = 0.2, fill = 'blue') +
   geom_line(aes(y = mu)) + 
@@ -337,144 +343,32 @@ simple_SN_efi %>%
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
   geom_vline(xintercept = Sys.Date(), linetype = 'dashed') +
-  geom_line(data = subset(targets, site_id == 'SUGG'), aes(x=time, y= observed))
+  geom_point(data = subset(targets, site_id == 'SUGG'), aes(x=datetime, y= observed))
 ```
 You can see that there are gaps in the forecast. This is where there was no observation for that day in the previous year. Ways we might fill these gaps in the forecast include interpolating the values, taking a day-of-year mean for all years data. 
 
 ### Write the forecast for NEON EFI challenge
+```{r eval = T}
+# Start by writing the forecast to file
+theme <- 'aquatics'
+date <- Sys.Date()
+forecast_name <- 'GLEON_RW_forecast.csv'
+forecast_file <- paste(theme, date, forecast_name, sep = '-')
 
-## Generate metadata
-Using the `neon4cast::generate_metadata()` function to write the metadata for each forecast.
+write_csv(RW_forecasts_EFI, forecast_file)
 
-Start by making the team list:
-```{r}
-team_list <- list(list(individualName = list(givenName = "Freya", 
-                                             surName = "Olsson"),
-                       organizationName = "Virginia Tech",
-                       electronicMailAddress = "freyao@vt.edu"),
-                  list(individualName = list(givenName = "Quinn", 
-                                             surName = "Thomas"),
-                       organizationName = "Virginia Tech"))
 ```
-
-Then information about the model goes in the model metadata list:
-
-```{r eval = F}
-model_metadata = list(
-  forecast = list(
-    model_description = list(
-      forecast_model_id = 'naive_baseline',  # model identifier:
-      name = 'Simple naive forecast using persistence',#Name or short description of model
-      type = 'empirical', #General type of model empirical, machine learning, process
-      repository =  # put your GitHub Repository in here
-    ),
-    initial_conditions = list(
-      status = , #options: absent, present, data_driven, propagates, assimilates
-      complexity = , #How many models states need initial conditions; delete if status = absent
-     #Delete list below if status = absent, present, or data_driven
-      propagation = list(
-        type =  , #How does your model propogate initial conditions ('ensemble' is most common)
-        size =  #number of ensemble members
-      ),
-      #Delete list below UNLESS status = assimilates
-      assimilation = list(
-        type = , #description of assimilation method
-        reference = , #reference for assimilation method
-        complexity =  #number of states that are updated with assimilation
-      )
-    ),
-    drivers = list(
-      status = , #options: absent, present, data_driven, propagates, assimilates
-      complexity = , #How many drivers are used? Delete if status = absent
-      #Delete list below if status = absent, present, or data_driven
-      propagation = list( 
-        type = , #How does your model propogate driver (ensemble or MCMC is most common
-        size = #number of ensemble or MCMC members
-        ) 
-    ),
-    parameters = list(
-      status = , #options: absent, present, data_driven, propagates, assimilates
-      complexity = , #How many parameters are included?; Delete if status = absent
-      #Delete list below below blank if status = absent, present, or data_driven
-      propagation = list(
-        type = , #how does your model propogate parameter uncertainity?
-        size = ),
-      #Delete list below UNLESS status = assimilates  
-      assimilation = list(
-        type = , #description of assimilation method
-        reference = , #reference for assimilation method
-        complexity =  #number of states that are updated with assimilation
-      )
-    ),
-    random_effects = list(
-      status = , #options: absent, present, data_driven, propagates, assimilates
-      complexity = ,  #Delete if status = absent
-      #Delete list below if status = absent, present, or data_driven
-      propagation = list(
-        type = , #How does your model propogate random effects (ensemble or MCMC is most common)
-        size =  #number of ensemble or MCMC members
-      ),
-      #Delete list below NLESS status = assimilates
-      assimilation = list(
-        type = , #description of assimilation method
-        reference = , #reference for assimilation method
-        complexity =  #number of states that are updated with assimilation
-      )
-    ),
-    process_error = list(
-      status = , #options: absent, present, data_driven, propagates, assimilates
-      complexity = , #Delete if status = absent
-      #Delete the list below below blank if status = absent, present, or data_driven
-      propagation = list(
-        type = , #How does your model propagate random effects uncertainty (ensemble or MCMC is most common) 
-        size =  #How many ensemble or MCMC members
-      ),
-      #Delete the list below UNLESS status = assimilates
-      assimilation = list(
-        type = , #Name of data assilimilation method
-        reference = , #Reference for data assimilation method
-        complexity = , #Number of states assimilate
-        covariance = , #TRUE OR FALSE
-        localization =  #TRUE OR FALSE
-      )
-    ),
-    obs_error = list(
-      status = , #options: absent, present, data_driven, propagates, assimilates
-      complexity = , #Delete if status = absent
-      #Delete the list below below blank if status = absent, present, or data_driven
-      propagation = list(
-        type = , #How does your model propagate random effects uncertainty (ensemble or MCMC is most common) 
-        size =  #How many ensemble or MCMC members
-      )
-    )
-  )
-)
-```
-
-
-```{r eval = FALSE}
-neon4cast::generate_metadata(forecast_file = file.path('C:/Users/freya/Documents/VT 2022-/neon4casting challenge/NEON-simple-baselines/aquatics-', 
-                                                       Sys.Date(), 
-                                                       '-naive_forecast.csv'),
-                             team_list = team_list,
-                             model_metadata =  model_metadata,
-                             forecast_iteration_id = ,
-                             title = ,
-                             team_name = ,
-                             intellectualRights = 
-                             ) 
-```
-
 ## Submit forecast 
 Files need to be in the correct format with metadata for submission
 ```{r eval = FALSE}
-neon4cast::submit(forecast_file = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.csv"),
-                  metadata = file.path("aquatics-forecast-", Sys.Date(), "-naive_forecast.xml"))
+# can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
+neon4cast::submit(forecast_file = forecast_file,
+                  ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
 ## Alternative methods to loop through each variable-site_id combination
 Using the `purrr` package we can also loop through each combination of site_id and variable combination. 
-This is more effecient computationally than the for loop. You need to create a dataframe with each argument as a column. Then specify this, along with the RW function as arguments in `pmap_dfr`. The `dfr` part of the function specifies that the output should be use row_bind into a dataframe. 
+This is more efficient computationally than the for loop. You need to create a dataframe with each argument as a column. Then specify this, along with the RW function as arguments in `pmap_dfr`. The `dfr` part of the function specifies that the output should be use row_bind into a dataframe. 
 
 ```{r message = F}
 site_var_combinations <- 
