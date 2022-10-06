@@ -20,6 +20,7 @@ These forecasts will implement methods from the fable package which is installed
 library(fpp3)
 library(tsibble)
 library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
 ```
 
 # Workflow
@@ -267,7 +268,7 @@ RW_forecasts_EFI %>%
 ```
 
 ## Seasonal naive model
-An alternative approach might be to look at the historic data to make predictions about the future.The seasonal naive model sets each forecast to be equal to the last observed value from the same season (e.g., the same day of the previous year). 
+An alternative approach might be to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value from the same season (e.g., the same day of the previous year). 
 Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `time` as the index. 
 Then the `SNAIVE` model is fit with a 1 year lag. 
 
@@ -291,7 +292,7 @@ We can calculate the standard deviation of the predicted values using a function
 This function extracts the variance from the distribution and calculates the standard deviation (sigma). 
 The columns needed for a distributional forecast are:
 
-* `time`: forecast timestamp
+* `datetime`: forecast timestamp
 * `reference_datetime`: The start of the forecast; this should be 0 times steps in the future. This should only be one value of reference_datetime in the file
 * `site_id`: NEON code for site
 * `family`: name of probability distribution that is described by the parameter values in the parameter column; only normal or ensemble is currently allowed
@@ -359,7 +360,14 @@ write_csv(RW_forecasts_EFI, forecast_file)
 
 ```
 ## Submit forecast 
-Files need to be in the correct format with metadata for submission
+Files need to be in the correct format with metadata for submission. The forecast organisers have created tools to help aid in the submission process. These tools can be downloaded from Github using `devtools::install_github(eco4cast/neon4cast)`.
+These include functions for submitting, scoring and reading forecasts:
+
+* `submit()` - submit the forecast file to the neon4cast server where it will be scored
+* `forecast_output_validator()` - will check the file is in the correct format to be submitted
+* `check_submission()` - check that your submission has been uploaded to the server
+* `score`
+
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
 neon4cast::submit(forecast_file = forecast_file,
@@ -388,4 +396,190 @@ RW_forecasts <- purrr::pmap_dfr(site_var_combinations, RW_daily_forecast)
 ```
 
 
+# Introducing co-variates
 
+One important step to creating forecasts is to introduce co-variates to the model. A water temperature forecast, for example, may be improved by additional information about past and future weather. The neon4cast challenge package includes functions for downloading past and future NOAA weather forecasts for all of the NEON sites. The 3 types of data are as follows:
+
+* historic weather: combination of day 1 NOAA weather forecasts (i.e., when the forecasts are most accurate) to generate an estimate of past weather. You can download this “stacked” NOAA product using `neon4cast::noaa_stage3()`
+* future weather: challenge organizers subset the NOAA weather forecasts which can be downloaded using `neon4cast::noaa_stage2()`. Future weather forecasts include a 30-member ensemble of equally likely future weather conditions
+
+The weather data can be subsetted and filtered prior to download (requires `dplyr::collect()`).
+
+
+```{r, message=FALSE}
+# past stacked weather
+df_past <- neon4cast::noaa_stage3()
+noaa_past <- df_past |> 
+  dplyr::filter(site_id %in% sites$field_site_id,
+                time >= ymd('2017-01-01'),
+                variable == "air_temperature") |> 
+  dplyr::collect()
+
+noaa_past
+```
+
+This is a stacked ensemble forecast of the one day ahead forecasts. To get an estimate of the historic conditions we can take a mean of these ensembles. We will also need to convert the temperatures to celcius from Kelvin.
+
+```{r}
+# aggregate the past to mean values
+noaa_past_mean <- noaa_past |> 
+  mutate(datetime = as_date(time)) |> 
+  group_by(datetime, site_id) |> 
+  summarize(air_temperature = mean(predicted, na.rm = TRUE), .groups = "drop") |> 
+  # convert air temp to C
+  mutate(air_temperature = air_temperature - 273.15)
+```
+
+We can then look at the future weather forecasts in the same way but using the `noaa_stage2()`. The forecast becomes available from NOAA at 5am UTC the following day, so we take the air temperature forecast from yesterday to make the water quality forecasts. Then we can use the ensembles to produce uncertainty in the water quality forecast by grouping the forecasts by site and ensemble when aggregating.
+
+
+```{r, message=FALSE}
+# New forecast only available at 5am UTC the next day
+forecast_date <- as.character(Sys.Date() - 1)
+
+df_future <- neon4cast::noaa_stage2()
+
+noaa_future <- df_future |> 
+  dplyr::filter(cycle == 0,
+                start_date == forecast_date,
+                site_id %in% sites$field_site_id,
+                variable == "air_temperature") |> 
+  dplyr::collect()
+
+```
+
+The forecasts are hourly and we are interested in using daily mean weather in the forecast generation for water temperature.
+
+```{r warning=F}
+noaa_future_daily <- noaa_future |> 
+  mutate(datetime = as_date(time)) |> 
+  # mean daily forecasts at each site per ensemble
+  group_by(datetime, site_id, ensemble) |> 
+  summarize(air_temperature = mean(predicted)) |>
+  # convert to Celsius
+  mutate(air_temperature = air_temperature - 273.15) |> 
+  select(datetime, site_id, air_temperature, ensemble)
+
+noaa_future_daily
+```
+
+We will fit a simple linear model between historic air temperature and the water temperature targets data. Using this model we can then use our future estimates of air temperature (all 30 ensembles) to estimate water temperature at each site. The ensemble weather forecast will therefore propagate uncertainty into the water temperature forecast and give an estimate of driving data uncertainty. 
+
+We will start by joining the historic weather data with the targets to aid in fitting the linear model.
+
+```{r}
+targets_lm <- targets |> 
+  filter(variable == 'temperature') |>
+  pivot_wider(names_from = 'variable', values_from = 'observed') |> 
+  left_join(noaa_past_mean, 
+            by = c("datetime","site_id"))
+targets_lm
+```
+
+To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. See here for more information on the `fable::TSLM()` function. We can fit a seperate linear model for each site. For example, at Lake Suggs, this would look like:
+
+```{r, eval = F}
+example_site <- 'SUGG'
+
+site_target <- targets_lm |> 
+  filter(site_id == example_site)
+
+noaa_future_site <- noaa_future_daily |> 
+  filter(site_id == example_site)
+
+#Fit linear model based on past data: water temperature = m * air temperature + b
+fit <- lm(site_target$temperature ~ site_target$air_temperature)
+    
+# use linear regression to forecast water temperature for each ensemble member
+forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_future_site$air_temperature
+
+```
+We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature. We can run this forecast for each site and then bind them together to submit as one forecast. We can add in an if else statement for sites where there is no data collect.
+
+```{r}
+temp_lm_forecast <- NULL
+
+for(i in 1:length(sites$field_site_id)) {  
+  example_site <- sites$field_site_id[i]
+  
+  site_target <- targets_lm |>
+    filter(site_id == example_site)
+
+  noaa_future_site <- noaa_future_daily |> 
+    filter(site_id == example_site)
+  
+  # some sites have no temperature records so need to be skipped over
+  if(length(which(!is.na(site_target$air_temperature) & !is.na(site_target$temperature))) > 0){
+    
+    #Fit linear model based on past data: water temperature = m * air temperature + b
+    fit <- lm(site_target$temperature ~ site_target$air_temperature)
+    
+    # use linear regression to forecast water temperature for each ensemble member
+    forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_future_site$air_temperature
+    
+    # put all the relavent information into a tibble that we can bind together
+    temperature <- tibble(datetime = noaa_future_site$datetime,
+                          site_id = example_site,
+                          ensemble = noaa_future_site$ensemble,
+                          predicted = forecasted_temperature,
+                          variable = "temperature")
+    
+    temp_lm_forecast <- dplyr::bind_rows(temp_lm_forecast, temperature)
+    # message(example_site, ' temperature forecast run')
+  } else {
+    message('no forecast run at ', example_site)
+  }
+}
+```
+We now have 30 possible forecasts of water temperature at each site (except BLUE). On this plot each line represents one of the possible forecasts and the range of forecast a quantification of the uncertainty in our forecast. 
+
+```{r, echo = F}
+temp_lm_forecast %>%
+  filter(site_id == 'SUGG' | site_id == 'TOOK') %>%
+  ggplot(., aes(x=datetime, y=predicted, group = ensemble)) +
+  geom_line() +
+  facet_wrap(~site_id)
+```
+
+We need to make sure the dataframe is in the correct format and then we can submit this to the challenge as well!
+
+```{r}
+temp_lm_forecast_EFI <- temp_lm_forecast %>%
+  mutate(model_id = 'GLEON_lm',
+         reference_datetime = Sys.Date(),
+         family = 'ensemble',
+         ensemble = as.character(ensemble)) %>%
+  rename(parameter = 'ensemble')%>%
+  select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, predicted)
+```
+
+```{r eval = T}
+# Start by writing the forecast to file
+theme <- 'aquatics'
+date <- Sys.Date()
+forecast_name <- 'GLEON_LM_forecast.csv'
+forecast_file <- paste(theme, date, forecast_name, sep = '-')
+
+write_csv(temp_lm_forecast_EFI, forecast_file)
+
+```
+
+```{r eval = FALSE}
+# can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
+neon4cast::submit(forecast_file = forecast_file,
+                  ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
+```
+
+# Other things that might be useful
+## Other weather variables 
+You can look at what other variables are available in the NOAA weather data
+
+```{r}
+df_past %>%
+  filter(site_id == 'ARIK',
+         time > ymd('2022-01-01')) |> 
+  dplyr::collect() |> 
+  distinct(variable)
+```
+
+## 
