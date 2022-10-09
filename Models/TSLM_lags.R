@@ -169,12 +169,12 @@ convert.to.efi_standard <- function(df){
   
   df %>% 
     as_tibble() %>%
-    dplyr::rename(predicted = .sim) %>%
-    dplyr::select(datetime, site_id, predicted, variable, parameter) %>%
+    dplyr::rename(prediction = .sim) %>%
+    dplyr::select(datetime, site_id, prediction, variable, parameter) %>%
     dplyr::mutate(family = "ensemble",
                   reference_datetime = min(datetime) - lubridate::days(1)) %>%
     dplyr::select(any_of(c('datetime', 'reference_datetime', 'site_id', 'family', 
-                           'parameter', 'variable', 'predicted', 'ensemble')))
+                           'parameter', 'variable', 'prediction', 'ensemble')))
 }
 
 # Convert to the EFI standard from a fable with distribution
