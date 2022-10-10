@@ -737,3 +737,4 @@ df_past %>%
   dplyr::collect() |> 
   distinct(variable)
 ```
+
