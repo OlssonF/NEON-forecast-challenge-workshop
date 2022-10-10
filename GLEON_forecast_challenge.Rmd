@@ -1,5 +1,5 @@
 ---
-title: "Simple NEON forecasts"
+title: "NEON forecast challenge - GLEON2022"
 output:
   html_document: 
     number_sections: true
@@ -27,20 +27,24 @@ When: Daily forecasts for at least 30-days in the future. New forecast submissio
 Today we will focus on Lake sites only, following on from the MacrosystemEDDIE module, and will primarily start with thinking about water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three. You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html)
 
 ## Submission requirements
-There are two key options for the format of the forcasts submitted to the Challenge. First, the file can be either in a _csv_ or a _netcdf_ format. Second the forecast must include a quantified uncertainty and the file can represent uncertainty using a family and parameter column.
+There are two key options for the format of the forcasts submitted to the Challenge. First, the file can be either in a _csv_ or a _netcdf_ format. Second the forecast must include a quantified uncertainty and the file can represent uncertainty using an ensemble forecast (multiple realisations of future conditions) or a distribution forecast (with mean forecast and standard deviation), specified in the family and parameter columns of the forecast file. 
 
-For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a parametric forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have values of mu and sigma for each forecasted variable, site_id, and time. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
+For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have values of mu and sigma for each forecasted variable, site_id, and time. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
+
+The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html)
 
 ### Forecasting with fable {.unnumbered}
 
-Two of these forecasting approaches will implement methods from the `fable` package which is installed via `fpp3` package. The Fable package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
+Two of these forecasting approaches will implement methods from the `fable` R package which is installed via `fpp3` package. The Fable package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
 `fable` and `fabletools`, are installed as part of the `fpp3` package and produce and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the `tidyverse` to manipulate and visualise the target data and forecasts. 
 
 ```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
-library(fpp3)
-library(tsibble)
-library(tidyverse)
-library(neon4cast)
+library(fpp3)      # install.packages('fpp3'), package for forecasting
+library(tsibble)   # install.packages('tsibble'), package for dealing with time series data sets
+library(tidyverse) # install.packages('tidyverse'), collection of R packages for data manipulation, analysis and visualisation
+library(neon4cast) # install via devtools::install_github('eco4cast/neon4cast)
+
+# suppreses dplyr's summarise message
 options(dplyr.summarise.inform = FALSE)
 ```
 
@@ -106,7 +110,7 @@ We can think about what type of models might be useful to predict these variable
 
 \newpage
 
-## Model 1: Persistence
+# Model 1: Persistence
 `fable` has some simple models that can be fitted to the target data. Fable models require data to be in a tidy `tsibble` format. Tools for dealing with tsibble objects are found in the `tsibble` package. `tsibble` objects are similar in structure to `tibble` objects but have a built in timeseries element. This is specified in their creation as the  `index` or time variable. You also need to give the tsibble a `key`, which in combination with the index will uniquely identify each record. In our case the key variables will be `site_id` and `variable`. 
 
 For RW forecasts, we simply set the forecast value be the value of the last observation. This is fine if we have data observed to yesterday but this often isn't the case. To make sure that the forecast uncertainty is reasonable, given the time since an observation, we start the forecast from the last observations and run forward 30 days into the future. Due to differences in past observations, the forecast will start from different dates depending on the date of the last observation at each site.
@@ -304,7 +308,7 @@ RW_forecast %>%
 
 Each line on the plot is one of the ensemble members (shown in the fable as `.rep`). You can also see that not all the "forecasted" days are true forecasts (some are in the past), but we started the forecast at the last observation. Therefore when we write out the forecast and submit it we need to make sure to only submit the true forecast (of the future). 
 
-### Convert to EFI standard for submission
+## Convert to EFI standard for submission
 For an ensemble forecast the documentation specifies the following columns:
 
 * `datetime`: forecast timestamp
@@ -337,7 +341,7 @@ RW_forecasts_EFI %>%
   filter(site_id == 'SUGG')
 ```
 
-### Write the forecast to file
+## Write the forecast to file
 ```{r eval = T}
 # Start by writing the forecast to file
 theme <- 'aquatics'
@@ -348,7 +352,7 @@ forecast_file <- paste(theme, date, forecast_name, sep = '-')
 write_csv(RW_forecasts_EFI, forecast_file)
 
 ```
-### Submit forecast 
+## Submit forecast 
 Files need to be in the correct format with metadata for submission. The forecast organisers have created tools to help aid in the submission process. These tools can be downloaded from Github using `devtools::install_github(eco4cast/neon4cast)`.
 These include functions for submitting, scoring and reading forecasts:
 
@@ -363,7 +367,7 @@ neon4cast::submit(forecast_file = forecast_file,
                   ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-### TASKS
+## TASKS
 Possible modifications to the Model 1 (lines x-x):
 
 * how does the number of ensembles change the uncertainty?
@@ -375,7 +379,7 @@ Possible modifications to the Model 1 (lines x-x):
 
 
 
-## Model 2: Seasonal naive model
+# Model 2: Seasonal naive model
 An alternative approach might be to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value given the specified lag. When we specify the lag to by 1 year, it will provide the forecast as the observations from the same day the previous year. 
 Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `time` as the index. 
 Then the `SNAIVE` model is fit with a 1 year lag.  One useful thing that the fable package can do is that it fits the specified models to each `key` pairing (variable, site_id) so you don't have to specify each model seperately. 
@@ -459,7 +463,7 @@ SN_forecast_EFI %>%
 ```
 You can see that there are gaps in the forecasts. This is where there was no observation for that day in the previous year. Ways we might fill these gaps in the forecast include interpolating the values, taking a day-of-year mean for all years data. 
 
-### Write the forecast for NEON EFI challenge
+## Write the forecast for NEON EFI challenge
 ```{r eval = T}
 # Start by writing the forecast to file
 theme <- 'aquatics'
@@ -470,7 +474,7 @@ forecast_file_2 <- paste(theme, date, forecast_name_2, sep = '-')
 write_csv(SN_forecast_EFI, forecast_file_2)
 
 ```
-### Submit forecast 
+## Submit forecast 
 Files need to be in the correct format with metadata for submission. The forecast organisers have created tools to help aid in the submission process. These tools can be downloaded from Github using `devtools::install_github(eco4cast/neon4cast)`.
 These include functions for submitting, scoring and reading forecasts:
 
@@ -485,7 +489,7 @@ neon4cast::submit(forecast_file = forecast_file_2,
                   ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-### TASKS
+## TASKS
 Possible modifications to the Model 2 (lines x-x):
 
 * fill gaps in forecasts - how could we modify the targets/forecast to get a continuous forecast for all sites
@@ -498,7 +502,7 @@ Possible modifications to the Model 2 (lines x-x):
 
 
 
-## Introducing co-variates
+# Introducing co-variates
 
 One important step to overcome when thinking about generating forecasts is to introduce co-variates to the model. A water temperature forecast, for example, may be improved by additional information about past and future weather. The neon4cast challenge package includes functions for downloading past and future NOAA weather forecasts for all of the NEON sites. The 3 types of data are as follows:
 
@@ -507,7 +511,7 @@ One important step to overcome when thinking about generating forecasts is to in
 
 These functions create a connection to the dataset hosted on the eco4cast server. To download the data you have to tell the function to `collect()` it. These data set can be subsetted and filtered using `dplyr` functions prior to download to limit the memory usage.
 
-
+## Download co-variates
 ### Download historic data
 
 We will generate a water temperature forecast using `air_temperature` as a co-variate. 
@@ -604,7 +608,7 @@ forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_futur
 ```
 We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature. We can run this forecast for each site and then bind them together to submit as one forecast. We can add in an if else statement for sites where there is no data collect.
 
-### Specify forecast model
+## Specify forecast model
 
 ```{r}
 temp_lm_forecast <- NULL
@@ -662,7 +666,7 @@ temp_lm_forecast_EFI <- temp_lm_forecast %>%
   select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction)
 ```
 
-### Submit forecast
+## Submit forecast
 
 ```{r eval = T}
 # Start by writing the forecast to file
@@ -690,7 +694,7 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 ```
 
 
-### TASKS
+## TASKS
 Possible modifications to the model 3 (lines x-x):
 
 * include additional co-variates in the linear model
@@ -701,7 +705,9 @@ Possible modifications to the model 3 (lines x-x):
 
 
 
-## Other things that might be useful
+# Other things that might be useful
+
+## Useful packages
 Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
 
 EFI has also produced a package that summarizes the proposed community standards for the common formatting and archiving of ecological forecasts. Such open standards are intended to promote interoperability and facilitate forecast adoption, distribution, validation, and synthesis ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html#efistandards-package) and [github](https://github.com/eco4cast/EFIstandards))
