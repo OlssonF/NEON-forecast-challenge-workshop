@@ -29,7 +29,7 @@ Today we will focus on Lake sites only, following on from the MacrosystemEDDIE m
 ## Submission requirements
 There are two key options for the format of the forcasts submitted to the Challenge. First, the file can be either in a _csv_ or a _netcdf_ format. Second the forecast must include a quantified uncertainty and the file can represent uncertainty using an ensemble forecast (multiple realisations of future conditions) or a distribution forecast (with mean forecast and standard deviation), specified in the family and parameter columns of the forecast file. 
 
-For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have values of mu and sigma for each forecasted variable, site_id, and time. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
+For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have values of mu and sigma for each forecasted variable, site_id, and datetime. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
 
 The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html)
 
@@ -115,15 +115,15 @@ We can think about what type of models might be useful to predict these variable
 
 For RW forecasts, we simply set the forecast value be the value of the last observation. This is fine if we have data observed to yesterday but this often isn't the case. To make sure that the forecast uncertainty is reasonable, given the time since an observation, we start the forecast from the last observations and run forward 30 days into the future. Due to differences in past observations, the forecast will start from different dates depending on the date of the last observation at each site.
 
-We calculate the `start_date` and total `horizon` for each `site_id` and `variable` combination. These can then be subsetted when we run the random walk. 
+We calculate the `reference_datetime` and total `horizon` for each `site_id` and `variable` combination. These can then be subsetted when we run the random walk. 
 ```{r message=F}
 # For the RW model need to start the forecast at the last non-NA day and then run to 30 days in the future
 forecast_starts <- targets %>%
   filter(!is.na(observed)) %>%
   group_by(site_id, variable) %>%
   # Start the day after the most recent non-NA value
-  summarise(start_date = max(datetime) + 1) %>% # Date 
-  mutate(h = (Sys.Date() - start_date) + 30) %>% # Horizon value 
+  summarise(reference_datetime = max(datetime) + 1) %>% # Date 
+  mutate(h = (Sys.Date() - reference_datetime) + 30) %>% # Horizon value 
   ungroup() 
 
 forecast_starts
@@ -159,7 +159,7 @@ RW_daily_forecast <- function(site,
     # add NA values up to today (index)
     tsibble::fill_gaps(.end = Sys.Date()) %>%
     # Remove the NA's put at the end, so that the forecast starts from the last day with an observation,
-    dplyr::filter(datetime < forecast_starts$start_date[which(forecast_starts$site_id == site &
+    dplyr::filter(datetime < forecast_starts$reference_datetime[which(forecast_starts$site_id == site &
                                                                 forecast_starts$variable == var)]) %>%
     mutate(observed = ifelse(observed == 0 & variable == "chla", 0.00001, observed))
   
@@ -171,7 +171,7 @@ RW_daily_forecast <- function(site,
     empty_df <- data.frame('variable' = character(),
                             'site_id' = character(),
                             '.model' = character(),
-                             'time' = lubridate::ymd(),
+                             'datetime' = lubridate::ymd(),
                             '.rep' = character(),
                             '.sim' = numeric())
     
@@ -283,7 +283,7 @@ RW_forecast %>%
             aes(x=datetime, y=observed, group = 'obs'), colour = 'black') +
   facet_wrap(~variable, scales = 'free') + 
   theme_bw() + theme(legend.position = 'none') +
-  coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
+  coord_cartesian(xlim = c(min(forecast_starts$reference_datetime[which(forecast_starts$site_id == 'SUGG')]) - 10,
                            Sys.Date() + 30)) +
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
@@ -299,7 +299,7 @@ RW_forecast %>%
             aes(x=datetime, y=observed, group = 'obs'), colour = 'black') +
   facet_wrap(~variable, scales = 'free') + 
   theme_bw() + theme(legend.position = 'none') +
-  coord_cartesian(xlim = c(min(forecast_starts$start_date[which(forecast_starts$site_id == 'SUGG')]) - 10,
+  coord_cartesian(xlim = c(min(forecast_starts$reference_datetime[which(forecast_starts$site_id == 'SUGG')]) - 10,
                            Sys.Date() + 30)) +
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
@@ -381,7 +381,7 @@ Possible modifications to the Model 1 (lines x-x):
 
 # Model 2: Seasonal naive model
 An alternative approach might be to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value given the specified lag. When we specify the lag to by 1 year, it will provide the forecast as the observations from the same day the previous year. 
-Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `time` as the index. 
+Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `datetime` as the index. 
 Then the `SNAIVE` model is fit with a 1 year lag.  One useful thing that the fable package can do is that it fits the specified models to each `key` pairing (variable, site_id) so you don't have to specify each model seperately. 
 
 ```{r, warning = F}
@@ -521,7 +521,7 @@ We will generate a water temperature forecast using `air_temperature` as a co-va
 df_past <- neon4cast::noaa_stage3()
 noaa_past <- df_past |> 
   dplyr::filter(site_id %in% aquatic_sites$field_site_id,
-                time >= ymd('2017-01-01'),
+                datetime >= ymd('2017-01-01'),
                 variable == "air_temperature") |> 
   dplyr::collect()
 
@@ -533,9 +533,9 @@ This is a stacked ensemble forecast of the one day ahead forecasts. To get an es
 ```{r}
 # aggregate the past to mean values
 noaa_past_mean <- noaa_past |> 
-  mutate(datetime = as_date(time)) |> 
+  mutate(datetime = as_date(datetime)) |> 
   group_by(datetime, site_id) |> 
-  summarize(air_temperature = mean(predicted, na.rm = TRUE), .groups = "drop") |> 
+  summarize(air_temperature = mean(prediction, na.rm = TRUE), .groups = "drop") |> 
   # convert air temp to C
   mutate(air_temperature = air_temperature - 273.15)
 ```
@@ -552,7 +552,7 @@ df_future <- neon4cast::noaa_stage2()
 
 noaa_future <- df_future |> 
   dplyr::filter(cycle == 0,
-                start_date == forecast_date,
+                reference_datetime == forecast_date,
                 site_id %in% aquatic_sites$field_site_id,
                 variable == "air_temperature") |> 
   dplyr::collect()
@@ -563,10 +563,10 @@ The forecasts are hourly and we are interested in using daily mean weather for w
 
 ```{r warning=F}
 noaa_future_daily <- noaa_future |> 
-  mutate(datetime = as_date(time)) |> 
+  mutate(datetime = as_date(datetime)) |> 
   # mean daily forecasts at each site per ensemble
   group_by(datetime, site_id, ensemble) |> 
-  summarize(air_temperature = mean(predicted)) |>
+  summarize(air_temperature = mean(prediction)) |>
   # convert to Celsius
   mutate(air_temperature = air_temperature - 273.15) |> 
   select(datetime, site_id, air_temperature, ensemble)
@@ -739,7 +739,7 @@ You can look at what other variables are available in the NOAA weather data. The
 ```{r}
 df_past %>%
   filter(site_id == 'ARIK',
-         time > ymd('2022-01-01')) |> 
+         datetime > ymd('2022-01-01')) |> 
   dplyr::collect() |> 
   distinct(variable)
 ```
