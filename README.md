@@ -1,8 +1,12 @@
 # NEON-forecast-challenge workshop for GLEON2022
 Repo for the workshop materials used in the Forecast Challenge part of the GLEON2022 workshop.
 
+```{r gh-installation, eval = FALSE}
 The following packages will need to be installed
 install.packages('fpp3') # package for applying simple forecasting methods
 install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
 install.packages('tidyverse') # collection of R packages for data manipulation, analysis, and visualisation
-devtools::install_github('eco4cast/neon4cast) # package from NEON4cast challenge organisers to assist with forecast building and submission
+# install.packages('devtools')
+devtools::install_github('eco4cast/neon4cast') # package from NEON4cast challenge organisers to assist with forecast building and submission
+```
+
