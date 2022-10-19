@@ -13,18 +13,18 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction to NEON forecast challenge
-The EFI RCN NEON Forecast Challenge asks the scientific community to produce ecological forecasts of conditions at NEON sites by leveraging NEON;s open data products. The Challenge is split into five themes that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions.
+The EFI RCN NEON Forecast Challenge asks the scientific community to produce ecological forecasts of future conditions at NEON sites by leveraging NEON's open data products. The Challenge is split into five themes that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions.
 
-We are excited to use this Challenge to learn more about the predictability of ecological processes by forecasting NEON data prior to its release. What modeling frameworks, mechanistic processes, and statistical approaches best capture community, population, and ecosystem dynamics? These questions are answerable by a community generating a diverse array of forecasts. The Challenge is open to any individual or team from anywhere around the world that wants to submit forecasts. Sign up [here](https://projects.ecoforecast.org/neon4cast-docs/Participation.html). 
+We are excited to use this Challenge to learn more about the predictability of ecological processes by forecasting NEON data prior to its release. Which modeling frameworks, mechanistic processes, and statistical approaches best capture community, population, and ecosystem dynamics? These questions are answerable by a community generating a diverse array of forecasts. The Challenge is open to any individual or team from anywhere around the world that wants to submit forecasts. Sign up [here](https://projects.ecoforecast.org/neon4cast-docs/Participation.html). 
 
 ### Aquatics challenge
 What: Freshwater surface water temperature, oxygen, and chlorophyll-a.
 
-Where: 7 lakes and 16 river/stream NEON sites.
+Where: 7 lakes and 27 river/stream NEON sites.
 
-When: Daily forecasts for at least 30-days in the future. New forecast submissions are accepted daily. The only requirement is that submissions are predictions of the future at the time the forecast is submitted.
+When: Daily forecasts for at least 30-days in the future. New forecast submissions, that use new data to update the forecast, are accepted daily. The only requirement is that submissions are predictions of the future at the time the forecast is submitted.
 
-Today we will focus on Lake sites only, following on from the MacrosystemEDDIE module, and will primarily start with thinking about water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three. You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html)
+Today we will focus on Lake sites only, following on from the MacrosystemEDDIE module, and will primarily start with thinking about water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html)
 
 ## Submission requirements
 There are two key options for the format of the forcasts submitted to the Challenge. First, the file can be either in a _csv_ or a _netcdf_ format. Second the forecast must include a quantified uncertainty and the file can represent uncertainty using an ensemble forecast (multiple realisations of future conditions) or a distribution forecast (with mean forecast and standard deviation), specified in the family and parameter columns of the forecast file. 
@@ -65,7 +65,7 @@ aquatic_sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-
 targets[1000:1010,]
 ```
 
-The columns of the targets file show the time step (daily for aquatics challenge), the 4 character site code (site_id), the variable being measured, and the mean daily observation. To look at just the Lakes we can subset the targets and aquatic sites to those which have the `field_site_subtye` of `Lake`. 
+The columns of the targets file show the time step (daily for aquatics challenge), the 4 character site code (`site_id`), the variable being measured, and the mean daily observation. To look at just the Lakes we can subset the targets and aquatic sites to those which have the `field_site_subtye` of `Lake`. 
 
 ```{r}
 lake_sites <- aquatic_sites %>%
@@ -79,7 +79,7 @@ targets <- targets %>%
 ```{r eval = T, echo = F, warning=FALSE, fig.dim=c(10,10), fig.cap=c('Figure: Temperature targets data at aquatic sites provided by EFI for the NEON forecasting challgenge', 'Figure: Oxygen targets data at aquatic sites provided by EFI for the NEON forecasting challgenge', 'Figure: Chlorophyll targets data at aquatic sites provided by EFI for the NEON forecasting challgenge. Chlorophyll data is only available at lake and river sites')}
 targets %>%
   filter(variable == 'temperature') %>%
-  ggplot(., aes(x = datetime, y = observed)) +
+  ggplot(., aes(x = datetime, y = observation)) +
   geom_point() +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   facet_wrap(~site_id, scales = 'free_y') +
@@ -87,7 +87,7 @@ targets %>%
 
 targets %>%
   filter(variable == 'oxygen') %>%
-  ggplot(., aes(x = datetime, y = observed)) +
+  ggplot(., aes(x = datetime, y = observation)) +
   geom_point() +  
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   facet_wrap(~site_id, scales = 'free_y')+
@@ -95,7 +95,7 @@ targets %>%
 
 targets %>%
   filter(variable == 'chla') %>%
-  ggplot(., aes(x = datetime, y = observed)) +
+  ggplot(., aes(x = datetime, y = observation)) +
   geom_point() +   
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   facet_wrap(~site_id, scales = 'free_y')+
@@ -108,7 +108,6 @@ We can think about what type of models might be useful to predict these variable
 * We could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Model 2 - Climatology/Seasonal Naive)
 * And we could also look at the lake variables' relationship(s) with other variable. Could we use existing forecasts about the weather to generate forecasts about lake variables (Model 3 - Linear Model with Co-variates).
 
-\newpage
 
 # Model 1: Persistence
 `fable` has some simple models that can be fitted to the target data. Fable models require data to be in a tidy `tsibble` format. Tools for dealing with tsibble objects are found in the `tsibble` package. `tsibble` objects are similar in structure to `tibble` objects but have a built in timeseries element. This is specified in their creation as the  `index` or time variable. You also need to give the tsibble a `key`, which in combination with the index will uniquely identify each record. In our case the key variables will be `site_id` and `variable`. 
@@ -119,7 +118,7 @@ We calculate the `reference_datetime` and total `horizon` for each `site_id` and
 ```{r message=F}
 # For the RW model need to start the forecast at the last non-NA day and then run to 30 days in the future
 forecast_starts <- targets %>%
-  filter(!is.na(observed)) %>%
+  filter(!is.na(observation)) %>%
   group_by(site_id, variable) %>%
   # Start the day after the most recent non-NA value
   summarise(reference_datetime = max(datetime) + 1) %>% # Date 
@@ -129,11 +128,11 @@ forecast_starts <- targets %>%
 forecast_starts
 ```
 
-You can see that the forecasts all have different start dates, based on when the last observation was taken. We want to fit each site and variable model seperately depending on its start date and calculated horizon. To do this I have written a custom function that runs the RW forecast. Within this function we:
+You can see that the forecasts all have different start dates, based on when the last observation was taken. We want to fit each site and variable model separately depending on its start date and calculated horizon. To do this I have written a custom function that runs the RW forecast. Within this function we:
 
 * Tidy: Takes the targets and fills with NAs, and filters up to the last non-NA value. The data must have explicit gaps for the full time series and must be in a tsibble format to run `fable`. Every time step up to the start of the forecast must exist even if it is filled with NAs (except the day before the forecast starts)!
 * Specify: Fits the RW model. We can also specify transformations to use within the model.  The `fable` package will automatically back-transform common transformations in the forecasts whenever one is used in the model definition. Common transofrmations include box-cox, logarithmic, sqrt... The simplest specification of the persisten model is 
-`RW_model <- targets_use %>% model(RW = RW(observed))` which stores the model table or `mable` in `RW_model`.
+`RW_model <- targets_use %>% model(RW = RW(observation))` which stores the model table or `mable` in `RW_model`.
 * Forecast: Then using this model, we run a forecast! We can specify whether bootstrapping is used and the number of bootstraps (`bootstrap = T`). Bootstrapping is where we run the forecast multiple times with a random error term drawn from the residuals of the fitted model. Doing this repeatedly, we obtain many possible futures. We decide how many of these possibilities to simulate with the `times=...` argument. The code to forecast using the specified model and bootstrapping is: 
 `forecast <- RW_model %>% forecast(h = 30, bootstrap = T)`
 
@@ -161,7 +160,7 @@ RW_daily_forecast <- function(site,
     # Remove the NA's put at the end, so that the forecast starts from the last day with an observation,
     dplyr::filter(datetime < forecast_starts$reference_datetime[which(forecast_starts$site_id == site &
                                                                 forecast_starts$variable == var)]) %>%
-    mutate(observed = ifelse(observed == 0 & variable == "chla", 0.00001, observed))
+    mutate(observation = ifelse(observation == 0 & variable == "chla", 0.00001, observation))
   
   # Check to see if there are rows in the targets
   if (nrow(targets_use) == 0) {
@@ -181,22 +180,22 @@ RW_daily_forecast <- function(site,
     # Do you want to apply a transformation? 
     if (transformation == 'log') {
       RW_model <- targets_use %>%
-        fabletools::model(RW = fable::RW(log(observed)))
+        fabletools::model(RW = fable::RW(log(observation)))
     }
     
     if (transformation == 'log1p') {
       RW_model <- targets_use %>%
-        fabletools::model(RW = fable::RW(log1p(observed)))
+        fabletools::model(RW = fable::RW(log1p(observation)))
     }
     
     if (transformation == 'sqrt') {
       RW_model <- targets_use %>%
-        fabletools::model(RW = fable::RW(sqrt(observed)))
+        fabletools::model(RW = fable::RW(sqrt(observation)))
     }
     
     if (transformation == 'none') {
       RW_model <- targets_use %>%
-        fabletools::model(RW = fable::RW(observed))
+        fabletools::model(RW = fable::RW(observation))
     }
     
     # Do you want to do a bootstrapped forecast?
@@ -280,7 +279,7 @@ RW_forecast %>%
   filter(site_id == 'SUGG') %>%
   ggplot(.,aes(x=datetime, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
   geom_point(data = subset(targets, site_id == 'SUGG'),
-            aes(x=datetime, y=observed, group = 'obs'), colour = 'black') +
+            aes(x=datetime, y=observation, group = 'obs'), colour = 'black') +
   facet_wrap(~variable, scales = 'free') + 
   theme_bw() + theme(legend.position = 'none') +
   coord_cartesian(xlim = c(min(forecast_starts$reference_datetime[which(forecast_starts$site_id == 'SUGG')]) - 10,
@@ -295,8 +294,8 @@ For Prairie Lake it's another question... 100 mg/L of dissolved oxygen??, -20 wa
 RW_forecast %>% 
   filter(site_id == 'PRLA') %>%
   ggplot(.,aes(x=datetime, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
-  geom_point(data = subset(targets, site_id == 'SUGG'),
-            aes(x=datetime, y=observed, group = 'obs'), colour = 'black') +
+  geom_point(data = subset(targets, site_id == 'PRLA'),
+            aes(x=datetime, y=observation, group = 'obs'), colour = 'black') +
   facet_wrap(~variable, scales = 'free') + 
   theme_bw() + theme(legend.position = 'none') +
   coord_cartesian(xlim = c(min(forecast_starts$reference_datetime[which(forecast_starts$site_id == 'SUGG')]) - 10,
@@ -391,7 +390,7 @@ SN_model <- targets %>%
   fill_gaps(.end = Sys.Date()) %>%
   
   # Here we fit the model
-  model(SN = SNAIVE(observed ~ lag('1 year')))
+  model(SN = SNAIVE(observation ~ lag('1 year')))
 ```
 
 Then we use the model we've specified to forecast. `h = 30` specifies the horizon of the forecast, relative to the index of the data (as 30 days). If the index, in this case `datetime`, had a different value such as monthly, the `h = ` value would be months. We use `forecast(... , bootstrap = F)` to run a non-bootstrapped forecast. The forecast will run for each key combination (variable-site_id). When bootstrap = F, the model assumes a normal distribution.
@@ -400,7 +399,7 @@ Then we use the model we've specified to forecast. `h = 30` specifies the horizo
 SN_forecast <- SN_model %>% forecast(h = 30, bootstrap = F)
 SN_forecast
 ```
-The output from this function is a `fable`. The prediction are held in the `observed` column as an S3 distribution, which gives the mean and variance of the prediction. `N()` says that the distribution is normal, and gives the mean and variance. 
+The output from this function is a `fable`. The prediction are held in the `observation` column as an S3 distribution, which gives the mean and variance of the prediction. `N()` says that the distribution is normal, and gives the mean and variance. 
 
 The challenge requires mean (mu) and standard deviation (sigma). We can calculate the standard deviation of the predicted values using a function to extract the variance and mean and create a table in the right format for EFI. The sigma represents the uncertainty in the forecast and is calculated from the residuals of the fitted model.
 
@@ -459,7 +458,7 @@ SN_forecast_EFI %>%
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
   geom_vline(xintercept = Sys.Date(), linetype = 'dashed') +
-  geom_point(data = targets, aes(x=datetime, y= observed))
+  geom_point(data = targets, aes(x=datetime, y= observation))
 ```
 You can see that there are gaps in the forecasts. This is where there was no observation for that day in the previous year. Ways we might fill these gaps in the forecast include interpolating the values, taking a day-of-year mean for all years data. 
 
@@ -506,10 +505,13 @@ Possible modifications to the Model 2 (lines x-x):
 
 One important step to overcome when thinking about generating forecasts is to introduce co-variates to the model. A water temperature forecast, for example, may be improved by additional information about past and future weather. The neon4cast challenge package includes functions for downloading past and future NOAA weather forecasts for all of the NEON sites. The 3 types of data are as follows:
 
-* historic weather: combination of day 1 NOAA weather forecasts (i.e., when the forecasts are most accurate) to generate an estimate of past weather. You can download this “stacked” NOAA product using `neon4cast::noaa_stage3()`
-* future weather: challenge organizers subset the NOAA weather forecasts which can be downloaded using `neon4cast::noaa_stage2()`. Future weather forecasts include a 30-member ensemble of equally likely future weather conditions
+* stage_1: raw forecasts - 31 member ensemble forecasts at 3 hr intervals for the first 10 days, and 6 hr intervals for up to 35 days at the NEON sites.
+* stage_2: a processed version of Stage 1 in which fluxes are standardized to per second rates, fluxes and states are interpolated to 1 hour intervals and variables are renamed to match conventions. We recommend this for obtaining future weather by using `neon4cast::noaa_stage2()`. Future weather forecasts include a 30-member ensemble of equally likely future weather conditions.
+* stage_3: can be viewed as the "historical" weather and is combination of day 1 weather forecasts (i.e., when the forecasts are most accurate). You can download this “stacked” NOAA product using `neon4cast::noaa_stage3()`.
 
 These functions create a connection to the dataset hosted on the eco4cast server. To download the data you have to tell the function to `collect()` it. These data set can be subsetted and filtered using `dplyr` functions prior to download to limit the memory usage.
+
+You can read more about the NOAA forecasts available for the NEON sites [here:](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html)
 
 ## Download co-variates
 ### Download historic data
@@ -546,13 +548,15 @@ We can then look at the future weather forecasts in the same way but using the `
 
 ```{r, message=FALSE}
 # New forecast only available at 5am UTC the next day
-forecast_date <- as.character(Sys.Date() - 1)
+
+forecast_date <- Sys.Date() 
+noaa_date <- forecast_date - days(1)
 
 df_future <- neon4cast::noaa_stage2()
 
 noaa_future <- df_future |> 
-  dplyr::filter(cycle == 0,
-                reference_datetime == forecast_date,
+  dplyr::filter(reference_datetime == noaa_date,
+                datetime >= forecast_date,
                 site_id %in% aquatic_sites$field_site_id,
                 variable == "air_temperature") |> 
   dplyr::collect()
@@ -565,11 +569,11 @@ The forecasts are hourly and we are interested in using daily mean weather for w
 noaa_future_daily <- noaa_future |> 
   mutate(datetime = as_date(datetime)) |> 
   # mean daily forecasts at each site per ensemble
-  group_by(datetime, site_id, ensemble) |> 
+  group_by(datetime, site_id, parameter) |> 
   summarize(air_temperature = mean(prediction)) |>
   # convert to Celsius
   mutate(air_temperature = air_temperature - 273.15) |> 
-  select(datetime, site_id, air_temperature, ensemble)
+  select(datetime, site_id, air_temperature, parameter)
 
 noaa_future_daily
 ```
@@ -581,7 +585,7 @@ We will start by joining the historic weather data with the targets to aid in fi
 ```{r}
 targets_lm <- targets |> 
   filter(variable == 'temperature') |>
-  pivot_wider(names_from = 'variable', values_from = 'observed') |> 
+  pivot_wider(names_from = 'variable', values_from = 'observation') |> 
   left_join(noaa_past_mean, 
             by = c("datetime","site_id"))
 targets_lm[1000:1010,]
@@ -634,7 +638,7 @@ for(i in 1:length(lake_sites$field_site_id)) {
     # put all the relavent information into a tibble that we can bind together
     temperature <- tibble(datetime = noaa_future_site$datetime,
                           site_id = example_site,
-                          ensemble = noaa_future_site$ensemble,
+                          parameter = noaa_future_site$parameter,
                           prediction = forecasted_temperature,
                           variable = "temperature")
     
@@ -649,7 +653,7 @@ We now have 30 possible forecasts of water temperature at each site and each day
 ```{r, echo = F}
 temp_lm_forecast %>%
   # filter(site_id == 'SUGG' | site_id == 'TOOK') %>%
-  ggplot(., aes(x=datetime, y=prediction, group = ensemble)) +
+  ggplot(., aes(x=datetime, y=prediction, group = parameter)) +
   geom_line() +
   facet_wrap(~site_id)
 ```
@@ -661,8 +665,7 @@ temp_lm_forecast_EFI <- temp_lm_forecast %>%
   mutate(model_id = 'GLEON_lm',
          reference_datetime = Sys.Date(),
          family = 'ensemble',
-         ensemble = as.character(ensemble)) %>%
-  rename(parameter = 'ensemble')%>%
+         parameter = as.character(parameter)) %>%
   select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction)
 ```
 
@@ -697,7 +700,7 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 ## TASKS
 Possible modifications to the model 3 (lines x-x):
 
-* include additional co-variates in the linear model
+* include additional co-variates in the linear model (remember to 'collect' and subset the right data)
 * include a lag in the predictors
 * specify a non-linear relationship
 * try forecasting another variable (oxygen or chlorophyll) - could you use your water temperature to estimate dissolved oxygen concentration at the surface?
@@ -707,7 +710,10 @@ Possible modifications to the model 3 (lines x-x):
 
 # Other things that might be useful
 
-## Useful packages
+## How the forecasts are scored?
+The Challenge implements methods from the scoringRules R package to calculate the Continuous Rank Probability Score (CRPS) via the `score4cast` package. This scores the optimum is the minimum value, so we are aiming for as small a value as possible. CRPS uses information about the distribution of the forecasts (sd) as well as the estimated mean to calculate the score. There is some balance between accuracy and precision. The forecasts will also be compared with 'null' models (RW and climatology) More info in the [documentation](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html) or the `score4cast` package from EFI organizers [here](https://github.com/eco4cast/score4cast). 
+
+## Other useful packages
 Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
 
 EFI has also produced a package that summarizes the proposed community standards for the common formatting and archiving of ecological forecasts. Such open standards are intended to promote interoperability and facilitate forecast adoption, distribution, validation, and synthesis ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html#efistandards-package) and [github](https://github.com/eco4cast/EFIstandards))
@@ -716,7 +722,7 @@ EFI has also produced a package that summarizes the proposed community standards
 Using the `purrr` package we can also loop through each combination of site_id and variable combination. 
 This is more efficient computationally than the for loop. You need to create a dataframe with each argument as a column. Then specify this, along with the RW function as arguments in `pmap_dfr`. The `dfr` part of the function specifies that the output should be use row_bind into a dataframe. 
 
-```{r message = F}
+```{r message = F, eval = F}
 site_var_combinations <- 
   # Gets every combination of site_id and variable
   expand.grid(site = unique(targets$site_id),
