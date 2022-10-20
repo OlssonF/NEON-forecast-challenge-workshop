@@ -27,13 +27,13 @@ Where: 7 lakes and 27 river/stream NEON sites.
 
 When: Daily forecasts for at least 30-days in the future. New forecast submissions, that use new data to update the forecast, are accepted daily. The only requirement is that submissions are predictions of the future at the time the forecast is submitted.
 
-Today we will focus on lake sites only, as used in the MacrosystemEDDIE module, and will primarily start with forecasting water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html)
+Today we will focus on lake sites only, as used in the MacrosystemEDDIE modules, and will start with forecasting water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html)
 
 ## Submission requirements
 
-There are two key options for the format of the forecasts submitted to the Challenge. First, the file can be either in a _csv_ or a _netcdf_ format. Second the forecast must include a quantified uncertainty and the file can represent uncertainty using an ensemble forecast (multiple realisations of future conditions) or a distribution forecast (with mean forecast and standard deviation), specified in the family and parameter columns of the forecast file. 
+There are two key options for the format of the forecasts submitted to the Challenge. First, the file can be either in a _csv_ or a _netcdf_ format (here we use the _csv_ format). Second the forecast must include a quantified uncertainty and the file can represent uncertainty using an ensemble forecast (multiple realizations of future conditions) or a distribution forecast (with mean and standard deviation), specified in the family and parameter columns of the forecast file. 
 
-For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have values of mu and sigma for each forecasted variable, site_id, and datetime. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
+For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have the words mu and sigma for each forecasted variable, site_id, and datetime. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
 
 The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html)
 
@@ -53,14 +53,15 @@ options(dplyr.summarise.inform = FALSE)
 ```
 
 ## 1. Read in the data
-We start forecasting by first looking at the historic data - called the 'targets'. This data is available near real-time, with the latency of approximately 24-48 hrs. We will start by reading in the data from the targets file. 
+
+We start forecasting by first looking at the historic data - called the 'targets'. This data is available near real-time, with the latency of approximately 24-48 hrs. Here is how you read in the data from the targets file. 
 
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 #read in the targets data
 targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aquatics-targets.csv.gz')
 ```
 
-Information on the sites can be found in the `NEON_Field_Site_Metadata_20220412.csv`. We filter this to look at just the aquatic sites. This table has loads of information about the field sites, including location, ecoregion, information about the watershed (e.g. elevation, mean annual precipitation and temperature), and lake depth. 
+Information on the NEON sites can be found in the `NEON_Field_Site_Metadata_20220412.csv` file on GitHub. It can be filtered to only include aquatic sites. This table has information about the field sites, including location, ecoregion, information about the watershed (e.g. elevation, mean annual precipitation and temperature), and lake depth. 
  
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 # read in the sites data
@@ -72,7 +73,7 @@ aquatic_sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-
 targets[1000:1010,]
 ```
 
-The columns of the targets file show the time step (daily for aquatics challenge), the 4 character site code (`site_id`), the variable being measured, and the mean daily observation. To look at just the lakes we can subset the targets and aquatic sites to those which have the `field_site_subtype` of `Lake`. 
+The columns of the targets file show the time step (daily for aquatics challenge), the 4 character site code (`site_id`), the variable being measured, and the mean daily observation. To look at only the lakes we can subset the targets and aquatic sites to those which have the `field_site_subtype` of `Lake`. 
 
 ```{r}
 lake_sites <- aquatic_sites %>%
