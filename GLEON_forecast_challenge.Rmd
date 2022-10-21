@@ -104,6 +104,11 @@ We can think about what type of models might be useful to predict these variable
 * We could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Climatology/Seasonal Naive Model)
 * And we could also look at the lake variables' relationship(s) with other variable. Could we use existing forecasts about the weather to generate forecasts about lake variables (Linear Model with Co-variates).
 
+To start, we will produce forecasts for just one of these target variables, surface water temperature.
+```{r}
+targets <- targets %>%
+  filter(variable == 'temperature')
+```
 
 # 3. Our first forecast: Persistence
 
@@ -124,9 +129,8 @@ options(dplyr.summarise.inform = FALSE)
 
 For Random Walk (RW) forecasts (i.e.,, persistence), we simply set the forecast value be the value of the last observation. 
 The model would be specified and then the forecast generated as follows (using `fable` and `fabletools` functions). 
-
-
-```{r, eval = F, comment='Note: Running the next chunk will return forecasts with all NAs. This is because there was no observation yesterday.'}
+Note: Running the next chunk will return forecasts with all NAs. This is because there was no observation yesterday.
+```{r, eval = T}
 RW_model <- targets %>% 
   # fable requires a tsibble object with explicit gaps
   tsibble::as_tsibble(key = c('variable', 'site_id'), index = 'datetime') %>%
@@ -137,10 +141,10 @@ RW_daily_forecast <- RW_model %>%
   forecast(h = 30)
 head(RW_daily_forecast)
 ```
+The forecast produces all NAs. Why would that be? If you look at the targets data we can see that yesterday did not have an observation, so the model cannot produce a persistence forecast. 
+Specifying the model and forecasts in this way would be fine if we have data observed to yesterday but this often isn't the case. This is obviously not ideal, so we need to think of a way to produce forecasts with the data we have. Instead we can start the forecast at the last observation. The forecast is run from that observation through today and then for 30 days in the future. In practice this means telling fable to forecasts 30 days + the number of days since last observation and then cutting off all the day that are in the past before submitting the forecast.
 
-Specifying the model and forecasts in this way would be fine if we have data observed to yesterday but this often isn't the case. Therefore, the forecast should instead be started at the last observation, to make sure that the forecast uncertainty is reasonable. The forecast is run from that observation through today for 30 days in the future.  In practice this means telling fable to forecasts 30 days + the number of days since last observation and cutting off all the day that are in the past before submitting the forecast.
-
-We calculate the `reference_datetime` and total `horizon` for each `site_id` and `variable` combination. These can then be subsetted when we run the random walk. 
+We calculate the `reference_datetime` and total `horizon` for each `site_id` and `variable` combination (here just temperature).  
 
 ```{r message=F}
 # For the RW model need to start the forecast at the last non-NA day and then run to 30 days in the future
@@ -155,7 +159,7 @@ forecast_starts <- targets %>%
 forecast_starts
 ```
 
-You can see that the forecasts all have different start dates, based on when the last observation was taken. We want to fit each site and variable model separately depending on its start date and calculated horizon. To do this I have written a custom function that runs the RW forecast. Within this function we:
+You can see that the site-variable combinations have different start dates, based on when the last observation was taken. We want to fit each site and variable model separately depending on its start date and calculated horizon. To do this I have written a custom function that runs the RW forecast. Within this function we:
 
 * Tidy: Takes the targets and fills with NAs, and filters up to the last non-NA value. The data must have explicit gaps for the full time series and must be in a tsibble format to run `fable`. Every time step up to the start of the forecast must exist even if it is filled with NAs (except the day before the forecast starts)!
 * Specify: Fits the RW model. We can also specify transformations to use within the model.  The `fable` package will automatically back-transform common transformations in the forecasts whenever one is used in the model definition. Common transformations include box-cox, logarithmic, and square root. The simplest specification of the model is 
@@ -367,6 +371,7 @@ RW_forecast %>%
         axis.title.y = element_text(colour = 'green'),
         axis.title.x = element_text(colour = 'red'),
         axis.text.y = element_text(colour = 'purple'),
+        axis.text.x = element_text(colour = 'red'),
         plot.caption = element_text(hjust = 0, colour = 'purple'),
         plot.title = element_text(colour = 'orange'), 
         plot.subtitle = element_text(colour = 'green')) 
