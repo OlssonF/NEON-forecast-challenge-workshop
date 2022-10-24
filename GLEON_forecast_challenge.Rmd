@@ -16,9 +16,9 @@ library(tidyverse) # install.packages('tidyverse'), collection of R packages for
 
 ## Introduction to NEON forecast challenge
 
-The EFI RCN NEON Forecast Challenge asks the scientific community to produce ecological forecasts of future conditions at NEON sites by leveraging NEON's open data products. The Challenge is split into five themes that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions.
-
-We are excited to use this Challenge to learn more about the predictability of ecological processes by forecasting NEON before it is collected. Which modeling frameworks, mechanistic processes, and statistical approaches best capture community, population, and ecosystem dynamics? These questions are answerable by a community generating a diverse array of forecasts. The Challenge is open to any individual or team from anywhere around the world that wants to submit forecasts. Sign up [here](https://projects.ecoforecast.org/neon4cast-docs/Participation.html). 
+The EFI RCN NEON Forecast Challenge asks the scientific community to produce ecological forecasts of future conditions at NEON sites by leveraging NEON's open data products. The Challenge is split into five themes that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions. We are excited to use this Challenge to learn more about the predictability of ecological processes by forecasting NEON data before it is collected.  
+  
+Which modeling frameworks, mechanistic processes, and statistical approaches best capture community, population, and ecosystem dynamics? These questions are answerable by a community generating a diverse array of forecasts. The Challenge is open to any individual or team from anywhere around the world that wants to submit forecasts. Sign up [here](https://projects.ecoforecast.org/neon4cast-docs/Participation.html). 
 
 ### Aquatics challenge
 
@@ -55,7 +55,7 @@ Information on the NEON sites can be found in the `NEON_Field_Site_Metadata_2022
 aquatic_sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-targets/main/NEON_Field_Site_Metadata_20220412.csv") |>
   dplyr::filter(aquatics == 1)
 ```
-
+Let's take a look at the targets data!
 ```{r eval = T, echo = F}
 targets[1000:1010,]
 ```
@@ -98,11 +98,11 @@ targets %>%
 
 ```
 
-We can think about what type of models might be useful to predict these variables at these sites. 
+We can think about what type of models might be useful to predict these variables at these sites. Below are descriptions of three simple models which have been constructed to get you started forecasting:
 
 * We could use information about current conditions to predict the next day. What is happening today is usually a good predictor of what will happen tomorrow (Model 1- Persistence). 
-* We could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Climatology/Seasonal Naive Model)
-* And we could also look at the lake variables' relationship(s) with other variable. Could we use existing forecasts about the weather to generate forecasts about lake variables (Linear Model with Co-variates).
+* We could also look at the lake variables' relationship(s) with other variable. Could we use existing forecasts about the weather to generate forecasts about lake variables (Model 2- Linear Model with Co-variates).
+* And we could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Model 3- Climatology/Seasonal Naive Model)
 
 To start, we will produce forecasts for just one of these target variables, surface water temperature.
 ```{r}
@@ -112,22 +112,22 @@ targets <- targets %>%
 
 # 3. Our first forecast: Persistence
 
-This first forecast will use a method from the `fable` R package which is installed via `fpp3` package. The Fable package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
+This first forecast will use a method from the `fable` R package which is installed via `fpp3` package. The `fable` package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
 `fable` and `fabletools`, are installed as part of the `fpp3` package and produce and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the `tidyverse` to manipulate and visualise the target data and forecasts. 
 
 ```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 library(fpp3)      # install.packages('fpp3'), package for forecasting
 library(tsibble)   # install.packages('tsibble'), package for dealing with time series data sets
 
-library(neon4cast) # install via remotes::install_github('eco4cast/neon4cast)
+library(neon4cast) # install via remotes::install_github('eco4cast/neon4cast')
 
 # suppreses dplyr's summarise message
 options(dplyr.summarise.inform = FALSE)
 ```
 
-`fable` has some simple models that can be fitted to the target data. Fable models require data to be in a tidy `tsibble` format. Tools for dealing with tsibble objects are found in the `tsibble` package. `tsibble` objects are similar in structure to `tibble` objects but have a built in timeseries element. This is specified in their creation as the  `index` or time variable. You also need to give the tsibble a `key`, which in combination with the index will uniquely identify each record. In our case the key variables will be `site_id` and `variable`. 
+`fable` has some simple models that can be fitted to the target data. `fable` models require data to be in a tidy `tsibble` format. Tools for dealing with tsibble objects are found in the `tsibble` package. `tsibble` objects are similar in structure to `tibble` objects but have a built in timeseries element. This is specified in their creation as the  `index` or time variable. You also need to give the tsibble a `key`, which in combination with the index will uniquely identify each record. In our case the key variables will be `site_id` and `variable`. 
 
-For Random Walk (RW) forecasts (i.e.,, persistence), we simply set the forecast value be the value of the last observation. 
+For Random Walk (RW) forecasts (i.e., persistence), we simply set the forecast value be the value of the last observation. 
 The model would be specified and then the forecast generated as follows (using `fable` and `fabletools` functions). 
 Note: Running the next chunk will return forecasts with all NAs. This is because there was no observation yesterday.
 ```{r, eval = T}
@@ -307,7 +307,7 @@ How reasonable are these forecasts?? Is there a way to improve the persistence m
 Looking just at Suggs Lake the forecasts seem okay - but there's very high uncertainty.
 ```{r, message = F, warning = F, echo = F, fig.cap = "Figure: Example 'random walk' forecasts for Lake Suggs (FL)"}
 RW_forecast %>% 
-  # filter(site_id == 'SUGG') %>%
+  filter(site_id == 'SUGG') %>%
   ggplot(.,aes(x=datetime, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
   # geom_point(data = subset(targets, site_id == 'SUGG'),
   #           aes(x=datetime, y=observation, group = 'obs'), colour = 'black') +
@@ -395,11 +395,6 @@ RW_forecasts_EFI <- RW_forecast %>%
 
 Now we have a forecast that can be submitted to the EFI challenge. 
 
-```{r}
-RW_forecasts_EFI %>%
-  filter(site_id == 'SUGG')
-```
-
 ## Write the forecast to file
 ```{r eval = T}
 # Start by writing the forecast to file
@@ -457,6 +452,7 @@ You can read more about the NOAA forecasts available for the NEON sites [here:](
 ### Download historic data
 
 We will generate a water temperature forecast using `air_temperature` as a co-variate. 
+Note: This code chunk can take a few minutes to execute as it accesses the NOAA data.
 
 ```{r, message=FALSE}
 # past stacked weather
@@ -552,6 +548,8 @@ forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_futur
 ```
 We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature. We can run this forecast for each site and then bind them together to submit as one forecast. We can add in an `if else` statement for sites where there is no data collect.
 
+# Model 2: Linear covariate model
+
 ## Specify forecast model
 
 ```{r}
@@ -611,7 +609,7 @@ temp_lm_forecast_EFI <- temp_lm_forecast %>%
 # Start by writing the forecast to file
 theme <- 'aquatics'
 date <- temp_lm_forecast_EFI$reference_datetime[1]
-forecast_name_3 <- 'GLEON_LM_forecast.csv'
+forecast_name_3 <- 'GLEON_LM_forecast.csv' #this is our second model I think?
 forecast_file_3 <- paste(theme, date, forecast_name_3, sep = '-')
 
 write_csv(temp_lm_forecast_EFI, forecast_file_3)
@@ -636,7 +634,7 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 
 
 ## TASKS
-Possible modifications to the model 3 (lines x-x):
+Possible modifications to Model 2 (lines x-x):
 
 * Include additional NOAA co-variates in the linear model (remember to 'collect' and subset the right data)
 * Include a lag in the predictors
@@ -644,7 +642,7 @@ Possible modifications to the model 3 (lines x-x):
 * Try forecasting another variable (oxygen or chlorophyll) - could you use your water temperature to estimate dissolved oxygen concentration at the surface?
 
 
-# Another model: Seasonal naive model
+# Model 3: Seasonal naive model
 
 An alternative approach is to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value given the specified lag. When we specify the lag to by 1 year, it will provide the forecast as the observations from the same day the previous year. 
 Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `datetime` as the index. 
@@ -735,7 +733,7 @@ You can see that there are gaps in the forecasts. This is where there was no obs
 # Start by writing the forecast to file
 theme <- 'aquatics'
 date <- SN_forecast_EFI$reference_datetime[1]
-forecast_name_2 <- 'GLEON_SN_forecast.csv'
+forecast_name_2 <- 'GLEON_SN_forecast.csv' #this is our third model I think?
 forecast_file_2 <- paste(theme, date, forecast_name_2, sep = '-')
 
 write_csv(SN_forecast_EFI, forecast_file_2)
@@ -757,7 +755,7 @@ neon4cast::submit(forecast_file = forecast_file_2,
 ```
 
 ## TASKS
-Possible modifications to the Model 2 (lines x-x):
+Possible modifications to Model 3g (lines x-x):
 
 * Fill gaps in forecasts - how could we modify the targets/forecast to get a continuous forecast for all sites
 * Explore Seasonal Naive and other simple models in [fable](https://otexts.com/fpp3/simple-methods.html)
