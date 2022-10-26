@@ -13,6 +13,7 @@ date: "`r Sys.Date()`"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse) # install.packages('tidyverse'), collection of R packages for data manipulation, analysis and visualisation
+library(lubridate)
 ```
 
 # Introduction to NEON forecast challenge
@@ -114,7 +115,7 @@ targets <- targets %>%
 ```
 
 
-# Model 1: Introducing co-variates
+# Introducing co-variates
 
 One important step to overcome when thinking about generating forecasts is to include co-variates in the model. A water temperature forecast, for example, may be benefit from information about past and future weather. The neon4cast challenge package includes functions for downloading past and future NOAA weather forecasts for all of the NEON sites. The 3 types of data are as follows:
 
@@ -226,7 +227,7 @@ forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_futur
 ```
 We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature. We can run this forecast for each site and then bind them together to submit as one forecast. 
 
-# Model 2: Linear covariate model
+# Model 1: Linear covariate model
 
 ## Specify forecast model
 
@@ -280,7 +281,7 @@ temp_lm_forecast %>%
   annotate("text", x = Sys.Date() - days(10), y = 20, label = "past")  +
   annotate("text", x = Sys.Date() + days(12), y = 20, label = "future")  +
   theme_bw() +
-  coord_cartesian(xlim = c(max(forecast_starts$reference_datetime) - 15,
+  coord_cartesian(xlim = c(min(temp_lm_forecast$datetime) - 15,
                            Sys.Date() + 30)) +
   scale_linetype_manual(values = 'dashed', name = '') +
   scale_colour_manual(values = 'darkgrey', name = '') +
@@ -355,7 +356,7 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 
 
 ## TASKS
-Possible modifications to Model 2 - simple linear model (lines x-x): 
+Possible modifications to Model 1 - simple linear model (lines x-x): 
 
 * Include additional NOAA co-variates in the linear model (remember to 'collect' and subset the right data)
 * Include a lag in the predictors
@@ -364,7 +365,7 @@ Possible modifications to Model 2 - simple linear model (lines x-x):
 
 Remember to change the `model_id` so we can differentiate them!
 
-# Model 2 - Persistence
+# Model 2:  Persistence
 
 This next forecast will use a method from the `fable` R package which is installed via `fpp3` package. The `fable` package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
 `fable` and `fabletools`, are installed as part of the `fpp3` package and produce and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the `tidyverse` to manipulate and visualise the target data and forecasts. 
@@ -685,7 +686,7 @@ Possible modifications to the persistence RW model:
 
 An alternative approach is to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value given the specified lag. When we specify the lag to by 1 year, it will provide the forecast as the observations from the same day the previous year. 
 Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `datetime` as the index. 
-Then the `SNAIVE` model is fit with a 1 year lag.  One useful thing that the fable package can do is that it fits the specified models to each `key` pairing (variable, site_id) so you don't have to specify each model for each site and variable separately (we did not do this in Model 1 because each site and variable has a different date of last observation). 
+Then the `SNAIVE` model is fit with a 1 year lag.  One useful thing that the fable package can do is that it fits the specified models to each `key` pairing (variable, site_id) so you don't have to specify each model for each site and variable separately (we did not do this in Model 2 because each site and variable has a different date of last observation). 
 
 ```{r, warning = F}
 SN_model <- targets %>%
