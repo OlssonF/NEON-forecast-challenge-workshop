@@ -244,6 +244,7 @@ for(i in 1:length(lake_sites$field_site_id)) {
   
   #Fit linear model based on past data: water temperature = m * air temperature + b
   fit <- lm(site_target$temperature ~ site_target$air_temperature)
+  # fit <- lm(site_target$temperature ~ ....)
     
   # use linear regression to forecast water temperature for each ensemble member
   forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_future_site$air_temperature
@@ -270,7 +271,7 @@ temp_lm_forecast %>%
   filter(variable == 'temperature') %>%
   ggplot(.,aes(x=datetime, y=prediction, group = parameter)) + 
   geom_point(data = targets,aes(x=datetime, y=observation, group = 'obs'), colour = 'darkblue') +
-  geom_line(alpha = 0.3, aes(colour = 'ensemble member (parameter\n1 - 200)')) + 
+  geom_line(alpha = 0.3, aes(colour = 'ensemble member (parameter)')) + 
   facet_wrap(~site_id, scales = 'free_y') +
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
@@ -329,7 +330,7 @@ The file name needs to be in the format theme-reference_datetime-model_id
 # Start by writing the forecast to file
 theme <- 'aquatics'
 date <- temp_lm_forecast_EFI$reference_datetime[1]
-forecast_name_1 <- 'GLEON_LM_forecast.csv' #this is our second model I think?
+forecast_name_1 <- 'GLEON_lm.csv' #this is our second model I think?
 forecast_file_1 <- paste(theme, date, forecast_name_1, sep = '-')
 
 write_csv(temp_lm_forecast_EFI, forecast_file_1)
@@ -341,7 +342,7 @@ neon4cast::forecast_output_validator(forecast_file_1)
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
 neon4cast::submit(forecast_file = forecast_file_1,
-                  ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
+                  ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
 Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using yesterday's air and water temperatures to predict tomorrow? Or including additional parameters? There's a lot of variability in water temperatures unexplained by air temperature alone.
@@ -354,15 +355,14 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 
 
 ## TASKS
-Possible modifications to Model 2 - simple linear model (lines x-x):
+Possible modifications to Model 2 - simple linear model (lines x-x): 
 
 * Include additional NOAA co-variates in the linear model (remember to 'collect' and subset the right data)
 * Include a lag in the predictors
 * Specify a non-linear relationship
 * Try forecasting another variable (oxygen or chlorophyll) - could you use your water temperature to estimate dissolved oxygen concentration at the surface?
 
-
-
+Remember to change the `model_id` so we can differentiate them!
 
 # Model 2 - Persistence
 
@@ -811,6 +811,22 @@ The Challenge implements methods from the scoringRules R package to calculate th
 Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
 
 EFI has also produced a package that summarizes the proposed community standards for the common formatting and archiving of ecological forecasts. Such open standards are intended to promote interoperability and facilitate forecast adoption, distribution, validation, and synthesis ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html#efistandards-package) and [github](https://github.com/eco4cast/EFIstandards))
+## Other weather variables 
+You can look at what other variables are available in the NOAA weather data. There's information in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html) too.
+
+```{r}
+df_past %>%
+  filter(site_id == 'ARIK',
+         datetime > ymd('2022-01-01')) |> 
+  dplyr::collect() |> 
+  distinct(variable)
+```
+
+## File format
+The examples shown here, submit the forecast as a _csv_ file but you can also submit your forecasts in _NetCDF_ format. See information [here](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html#step-1-forecast-file-format) about the different file formats.
+
+## Automating your forecasting workflow
+Automation is a key step to producing forecasts once you have your model up and running and are happy with your forecasts. By automating your forecasting workflow, reduces the "work" needed to produce the forecasts. There are many ways to automate scripts that are written to download observations and meteorology drivers, generate forecasts, and submit forecasts. Two tools that many have used are cron jobs (see the R package cronR) that execute tasks at user specifics times and github actions. There are examples of how you might go about implementing this in the [example github repository](https://github.com/eco4cast/neon4cast-example), using github actions and binder. 
 
 ## Alternative methods to loop through each variable-site_id combination
 Using the `purrr` package we can also loop through each combination of site_id and variable combination. 
@@ -833,19 +849,3 @@ RW_forecasts <- purrr::pmap_dfr(site_var_combinations, RW_daily_forecast)
 
 ```
 
-## Other weather variables 
-You can look at what other variables are available in the NOAA weather data. There's information in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html) too.
-
-```{r}
-df_past %>%
-  filter(site_id == 'ARIK',
-         datetime > ymd('2022-01-01')) |> 
-  dplyr::collect() |> 
-  distinct(variable)
-```
-
-## File format
-The examples shown here, submit the forecast as a _csv_ file but you can also submit your forecasts in _NetCDF_ format. See information [here](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html#step-1-forecast-file-format) about the different file formats.
-
-## Automating your forecasting workflow
-Automation is a key step to producing forecasts once you have your model up and running and are happy with your forecasts. By automating your forecasting workflow, reduces the "work" needed to produce the forecasts. There are many ways to automate scripts that are written to download observations and meteorology drivers, generate forecasts, and submit forecasts. Two tools that many have used are cron jobs (see the R package cronR) that execute tasks at user specifics times and github actions. There are examples of how you might go about implementing this in the [example github repository](https://github.com/eco4cast/neon4cast-example), using github actions and binder. 
