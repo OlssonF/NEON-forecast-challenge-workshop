@@ -138,6 +138,7 @@ Note: This code chunk can take a few minutes to execute as it accesses the NOAA 
 df_past <- neon4cast::noaa_stage3()
 
 variables <- c("air_temperature")
+#Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-2
 
 noaa_past <- df_past |> 
   dplyr::filter(site_id %in% lake_sites$field_site_id,
