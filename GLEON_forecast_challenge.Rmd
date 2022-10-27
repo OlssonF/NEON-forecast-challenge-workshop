@@ -136,10 +136,14 @@ Note: This code chunk can take a few minutes to execute as it accesses the NOAA 
 ```{r, message=FALSE}
 # past stacked weather
 df_past <- neon4cast::noaa_stage3()
+
+variables <- c("air_temperature")
+#Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-2
+
 noaa_past <- df_past |> 
   dplyr::filter(site_id %in% lake_sites$field_site_id,
                 datetime >= ymd('2017-01-01'),
-                variable == "air_temperature") |> 
+                variable %in% variables) |> 
   dplyr::collect()
 
 noaa_past
@@ -151,8 +155,9 @@ This is a stacked ensemble forecast of the one day ahead forecasts. To get an es
 # aggregate the past to mean values
 noaa_past_mean <- noaa_past |> 
   mutate(datetime = as_date(datetime)) |> 
-  group_by(datetime, site_id) |> 
-  summarize(air_temperature = mean(prediction, na.rm = TRUE), .groups = "drop") |> 
+  group_by(datetime, site_id, variable) |> 
+  summarize(prediction = mean(prediction, na.rm = TRUE), .groups = "drop") |> 
+  pivot_wider(names_from = variable, values_from = prediction) |> 
   # convert air temp to C
   mutate(air_temperature = air_temperature - 273.15)
 ```
@@ -169,11 +174,13 @@ noaa_date <- forecast_date - days(1)
 
 df_future <- neon4cast::noaa_stage2()
 
+variables <- c("air_temperature")
+
 noaa_future <- df_future |> 
   dplyr::filter(reference_datetime == noaa_date,
                 datetime >= forecast_date,
                 site_id %in% lake_sites$field_site_id,
-                variable == "air_temperature") |> 
+                variable %in% variables) |> 
   dplyr::collect()
 noaa_future
 ```
@@ -184,8 +191,9 @@ The forecasts are hourly and we are interested in using daily mean air temperatu
 noaa_future_daily <- noaa_future |> 
   mutate(datetime = as_date(datetime)) |> 
   # mean daily forecasts at each site per ensemble
-  group_by(datetime, site_id, parameter) |> 
-  summarize(air_temperature = mean(prediction)) |>
+  group_by(datetime, site_id, parameter, variable) |> 
+  summarize(prediction = mean(prediction)) |>
+  pivot_wider(names_from = variable, values_from = prediction)
   # convert to Celsius
   mutate(air_temperature = air_temperature - 273.15) |> 
   select(datetime, site_id, air_temperature, parameter)
@@ -327,7 +335,7 @@ We need to make sure the dataframe is in the correct format and then we can subm
 ```{r}
 temp_lm_forecast_EFI <- temp_lm_forecast %>%
   mutate(model_id = 'GLEON_lm',
-         reference_datetime = Sys.Date(),
+         reference_datetime = as_date(min(datetime)) - days(1),
          family = 'ensemble',
          parameter = as.character(parameter)) %>%
   select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction)
@@ -346,8 +354,9 @@ The file name needs to be in the format theme-reference_datetime-model_id
 # Start by writing the forecast to file
 theme <- 'aquatics'
 date <- temp_lm_forecast_EFI$reference_datetime[1]
-forecast_name_1 <- 'GLEON_lm.csv' #this is our second model I think?
+forecast_name_1 <- paste0(temp_lm_forecast_EFI$model_id[1], ".csv")
 forecast_file_1 <- paste(theme, date, forecast_name_1, sep = '-')
+forecast_file_1
 
 write_csv(temp_lm_forecast_EFI, forecast_file_1)
 
