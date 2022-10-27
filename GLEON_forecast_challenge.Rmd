@@ -106,7 +106,7 @@ We can think about what type of models might be useful to predict these variable
 
 * We could use information about current conditions to predict the next day. What is happening today is usually a good predictor of what will happen tomorrow (Model 2 - Persistence). 
 * We could also look at the lake variables' relationship(s) with other variable. Could we use existing forecasts about the weather to generate forecasts about lake variables (Model 1 - Linear Model with Co-variates).
-* And we could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Model 3- Climatology/Seasonal Naive Model)
+* And we could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Model 3 - Climatology/Seasonal Naive Model)
 
 To start, we will produce forecasts for just one of these target variables, surface water temperature.
 ```{r}
@@ -192,6 +192,22 @@ noaa_future_daily <- noaa_future |>
 
 noaa_future_daily
 ```
+Now we have a timeseries of historic data and a 30 member ensemble forecast of future temperatures
+
+```{r echo = F, fig.cap = c('Figure: historic and future NOAA air temeprature forecasts at lake sites', 'Figure: last two months of historic air temperature forecasts and 35 day ahead forecast')}
+ggplot(noaa_future_daily, aes(x=datetime, y=air_temperature)) +
+  geom_line(aes(group = parameter), alpha = 0.4)+
+  geom_line(data = noaa_past_mean, colour = 'darkblue') +
+  facet_wrap(~site_id, scales = 'free')
+
+ggplot(noaa_future_daily, aes(x=datetime, y=air_temperature)) +
+  geom_line(aes(group = parameter), alpha = 0.4)+
+  geom_line(data = noaa_past_mean, colour = 'darkblue') +
+  coord_cartesian(xlim = ymd(c('2022-09-01', '2022-12-05')))+
+  facet_wrap(~site_id, scales = 'free')
+```
+
+# Model 1: Linear covariate model
 
 We will fit a simple linear model between historic air temperature and the water temperature targets data. Using this model we can then use our future estimates of air temperature (all 30 ensembles) to estimate water temperature at each site. The ensemble weather forecast will therefore propagate uncertainty into the water temperature forecast and give an estimate of driving data uncertainty. 
 
@@ -227,7 +243,6 @@ forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_futur
 ```
 We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature. We can run this forecast for each site and then bind them together to submit as one forecast. 
 
-# Model 1: Linear covariate model
 
 ## Specify forecast model
 
@@ -343,7 +358,7 @@ neon4cast::forecast_output_validator(forecast_file_1)
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
 neon4cast::submit(forecast_file = forecast_file_1,
-                  ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
+                  ask = TRUE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
 Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using yesterday's air and water temperatures to predict tomorrow? Or including additional parameters? There's a lot of variability in water temperatures unexplained by air temperature alone.
@@ -356,14 +371,14 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 
 
 ## TASKS
-Possible modifications to Model 1 - simple linear model (lines x-x): 
+Possible modifications to Model 1 - simple linear model: 
 
 * Include additional NOAA co-variates in the linear model (remember to 'collect' and subset the right data)
 * Include a lag in the predictors
 * Specify a non-linear relationship
 * Try forecasting another variable (oxygen or chlorophyll) - could you use your water temperature to estimate dissolved oxygen concentration at the surface?
 
-Remember to change the `model_id` so we can differentiate them!
+Remember to change the `model_id` so we can differentiate them (and include GLEON_ in the name)!
 
 # Model 2:  Persistence
 
