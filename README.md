@@ -10,4 +10,4 @@ install.packages('tidyverse') # collection of R packages for data manipulation, 
 install.packages('lubridate') # working with dates and times
 remotes::install_github('eco4cast/neon4cast') # package from NEON4cast challenge organisers to assist with forecast building and submission
 ```
-
+R version 4.2 is required to run the neon4cast package. It's also worth checking your Rtools is up to date. 
