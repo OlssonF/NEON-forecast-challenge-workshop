@@ -11,3 +11,5 @@ install.packages('lubridate') # working with dates and times
 remotes::install_github('eco4cast/neon4cast') # package from NEON4cast challenge organisers to assist with forecast building and submission
 ```
 R version 4.2 is required to run the neon4cast package. It's also worth checking your Rtools is up to date. 
+
+For the workshop you can follow along via the rmarkdown document (GLEON_forecast_challenge.Rmd) or the html (GLEON_forecast_challenge.html), both of which can be downloaded here or you can fork the whole repository.
