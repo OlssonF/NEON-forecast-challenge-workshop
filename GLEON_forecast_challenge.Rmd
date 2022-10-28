@@ -43,7 +43,7 @@ The full list of required columns and format can be found in the [Challenge docu
 # The forecasting workflow
 ## Read in the data
 
-We start forecasting by first looking at the historic data - called the 'targets'. This data is available near real-time, with the latency of approximately 24-48 hrs. Here is how you read in the data from the targets file available from the EFI server. 
+We start forecasting by first looking at the historic data - called the 'targets'. These data are available near real-time, with the latency of approximately 24-48 hrs. Here is how you read in the data from the targets file available from the EFI server. 
 
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 #read in the targets data
@@ -193,7 +193,7 @@ noaa_future_daily <- noaa_future |>
   # mean daily forecasts at each site per ensemble
   group_by(datetime, site_id, parameter, variable) |> 
   summarize(prediction = mean(prediction)) |>
-  pivot_wider(names_from = variable, values_from = prediction)
+  pivot_wider(names_from = variable, values_from = prediction) |>
   # convert to Celsius
   mutate(air_temperature = air_temperature - 273.15) |> 
   select(datetime, site_id, air_temperature, parameter)
@@ -290,7 +290,7 @@ We now have 30 possible forecasts of water temperature at each site and each day
 
 Looking back at the forecasts we produced:
 
-```{r, echo = F}
+```{r, echo = F, warning = F}
 temp_lm_forecast %>% 
   filter(variable == 'temperature') %>%
   ggplot(.,aes(x=datetime, y=prediction, group = parameter)) + 
@@ -382,12 +382,14 @@ ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
 ## TASKS
 Possible modifications to Model 1 - simple linear model: 
 
-* Include additional NOAA co-variates in the linear model (remember to 'collect' and subset the right data)
-* Include a lag in the predictors
+* Include additional NOAA co-variates in the linear model (remember to 'collect' and subset the right data from NOAA)
 * Specify a non-linear relationship
 * Try forecasting another variable (oxygen or chlorophyll) - could you use your water temperature to estimate dissolved oxygen concentration at the surface?
+* Include a lag in the predictors
 
 Remember to change the `model_id` so we can differentiate them (and include GLEON_ in the name)!
+So we can keep track of who has submitted a forecast please fill in this quick [google form](https://forms.gle/7PegnY2h4hPnYsxQA). 
+
 
 # Model 2:  Persistence
 
