@@ -12,9 +12,42 @@ date: "`r Sys.Date()`"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse) # install.packages('tidyverse'), collection of R packages for data manipulation, analysis and visualisation
+library(tidyverse)
 library(lubridate)
 ```
+
+# This R markdown document
+This document present workshop materials initially presented in the Forecast Challenge part of the GLEON2022 workshop "Introduction to real-time lake forecasting: learn, teach, and generate forecasts with Macrosystems EDDIE modules and the NEON Forecasting Challenge." 
+
+To complete the workshop via this markdown document the following packages will need to be installed:
+
+* `remotes`
+* `fpp3`
+* `tsibble`
+* `tidyverse`
+* `lubridate`
+* `neon4cast` (from github)
+
+The following code chunk should be run to install packages.
+
+```{r eval = F}
+install.packages('remotes')
+install.packages('fpp3') # package for applying simple forecasting methods
+install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
+install.packages('tidyverse') # collection of R packages for data manipulation, analysis, and visualisation
+install.packages('lubridate') # working with dates and times
+remotes::install_github('eco4cast/neon4cast') # package from NEON4cast challenge organisers to assist with forecast building and submission
+```
+
+Addditionally, R version 4.2 is required to run the neon4cast package. It's also worth checking your Rtools is up to date and compatible wiith R 4.2, see (https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html). 
+
+
+```{r}
+version$version.string
+
+```
+
+If you do not wish to run the code yourself you can follow along via or the html (GLEON_forecast_challenge.html), which can be downloaded from the [Github repository](https://github.com/OlssonF/GLEON-forecast-challenge). 
 
 # Introduction to NEON forecast challenge
 
@@ -211,7 +244,8 @@ ggplot(noaa_future_daily, aes(x=datetime, y=air_temperature)) +
 ggplot(noaa_future_daily, aes(x=datetime, y=air_temperature)) +
   geom_line(aes(group = parameter), alpha = 0.4)+
   geom_line(data = noaa_past_mean, colour = 'darkblue') +
-  coord_cartesian(xlim = ymd(c('2022-09-01', '2022-12-05')))+
+  coord_cartesian(xlim = c(noaa_date - days(60),
+                           noaa_date + days(35)))+
   facet_wrap(~site_id, scales = 'free')
 ```
 
@@ -333,8 +367,11 @@ For an ensemble forecast the documentation specifies the following columns:
 We need to make sure the dataframe is in the correct format and then we can submit this to the challenge as well! This is an ensemble forecast (specified in the `family` column). 
 
 ```{r}
+# Remember to change the model_id when you make changes to the model structure!
+my_model_id <- 'temp_name'
+
 temp_lm_forecast_EFI <- temp_lm_forecast %>%
-  mutate(model_id = 'GLEON_lm',
+  mutate(model_id = my_model_id,
          reference_datetime = as_date(min(datetime)) - days(1),
          family = 'ensemble',
          parameter = as.character(parameter)) %>%
@@ -387,9 +424,15 @@ Possible modifications to Model 1 - simple linear model:
 * Try forecasting another variable (oxygen or chlorophyll) - could you use your water temperature to estimate dissolved oxygen concentration at the surface?
 * Include a lag in the predictors
 
-Remember to change the `model_id` so we can differentiate them (and include GLEON_ in the name)!
-So we can keep track of who has submitted a forecast please fill in this quick [google form](https://forms.gle/7PegnY2h4hPnYsxQA). 
+Remember to change the `model_id` so we can differentiate different forecasts!
 
+## Register your participation
+It's really important that once you start submitting forecasts to the Challenge that you register your participation. We ask that you complete this [form](https://nd.qualtrics.com/jfe/form/SV_9MJ29y2xNrBOjqZ) which asks you some simple questions about your forecast and team. This is crucial for a couple of reasons:
+
+1. We can keep track different forecast submissions during the scoring process to see which forecast is performing the best. Your `model_id` will be used to track the submissions so any new forecast model requires a new `model_id`.
+2. The form gives consent for submissions to be included in Challenge-wide syntheses being carried out by the Challenge organisers. Partipants in the Challenge will be invited to join the synthesis projects on an opt-in basis. 
+
+Questions about CHallenge registration and synthesis participation can be directed to [Freya Olsson](mailto:freyao@vt.edu). 
 
 # Model 2:  Persistence
 
