@@ -1,12 +1,10 @@
 ---
-title: "NEON forecast challenge - GLEON2022"
+title: "NEON forecast challenge"
 author: Freya Olsson
 output:
   html_document: 
     number_sections: true
     toc: true
-  pdf_document: 
-    number_sections: true
 date: "`r Sys.Date()`"
 ---
 
@@ -17,7 +15,7 @@ library(lubridate)
 ```
 
 # This R markdown document
-This document present workshop materials initially presented in the Forecast Challenge part of the GLEON2022 workshop "Introduction to real-time lake forecasting: learn, teach, and generate forecasts with Macrosystems EDDIE modules and the NEON Forecasting Challenge." 
+This document present workshop materials initially presented in the Forecast Challenge part of the GLEON2022 workshop "Introduction to real-time lake forecasting: learn, teach, and generate forecasts with Macrosystems EDDIE modules and the NEON Forecasting Challenge." The materials have been modified slightly for use in additional workshops.
 
 To complete the workshop via this markdown document the following packages will need to be installed:
 
@@ -39,7 +37,7 @@ install.packages('lubridate') # working with dates and times
 remotes::install_github('eco4cast/neon4cast') # package from NEON4cast challenge organisers to assist with forecast building and submission
 ```
 
-Addditionally, R version 4.2 is required to run the neon4cast package. It's also worth checking your Rtools is up to date and compatible wiith R 4.2, see (https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html). 
+Additionally, R version 4.2 is required to run the neon4cast package. It's also worth checking your Rtools is up to date and compatible with R 4.2, see (https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html). 
 
 
 ```{r}
@@ -47,13 +45,13 @@ version$version.string
 
 ```
 
-If you do not wish to run the code yourself you can follow along via or the html (GLEON_forecast_challenge.html), which can be downloaded from the [Github repository](https://github.com/OlssonF/GLEON-forecast-challenge). 
+If you do not wish to run the code yourself you can follow along via the html (GLEON_forecast_challenge.html), which can be downloaded from the [Github repository](https://github.com/OlssonF/GLEON-forecast-challenge). 
 
 # Introduction to NEON forecast challenge
 
 The EFI RCN NEON Forecast Challenge asks the scientific community to produce ecological forecasts of future conditions at NEON sites by leveraging NEON's open data products. The Challenge is split into five themes that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions. We are excited to use this Challenge to learn more about the predictability of ecological processes by forecasting NEON data before it is collected.  
   
-Which modeling frameworks, mechanistic processes, and statistical approaches best capture community, population, and ecosystem dynamics? These questions are answerable by a community generating a diverse array of forecasts. The Challenge is open to any individual or team from anywhere around the world that wants to submit forecasts. Sign up [here](https://projects.ecoforecast.org/neon4cast-docs/Participation.html). 
+Which modeling frameworks, mechanistic processes, and statistical approaches best capture community, population, and ecosystem dynamics? These questions are answerable by a community generating a diverse array of forecasts. The Challenge is open to any individual or team from anywhere around the world that wants to submit forecasts. Sign up [here.](https://projects.ecoforecast.org/neon4cast-docs/Participation.html). 
 
 ## Aquatics challenge
 
@@ -63,7 +61,7 @@ Where: 7 lakes and 27 river/stream NEON sites.
 
 When: Daily forecasts for at least 30-days in the future. New forecast submissions, that use new data to update the forecast, are accepted daily. The only requirement is that submissions are predictions of the future at the time the forecast is submitted.
 
-Today we will focus on lake sites only, as used in the MacrosystemEDDIE modules, and will start with forecasting water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html)
+Today we will focus on lake sites only, as used in the MacrosystemEDDIE modules, and will start with forecasting water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html).
 
 ## Submission requirements
 
@@ -71,7 +69,7 @@ For the Challanges forecasts must include quantified uncertainty. The file can r
 
 For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have the words mu and sigma for each forecasted variable, site_id, and datetime. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
 
-The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html)
+The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html).
 
 # The forecasting workflow
 ## Read in the data
@@ -249,7 +247,7 @@ ggplot(noaa_future_daily, aes(x=datetime, y=air_temperature)) +
   facet_wrap(~site_id, scales = 'free')
 ```
 
-# Model 1: Linear covariate model
+# Model 1: Linear model with covariates
 
 We will fit a simple linear model between historic air temperature and the water temperature targets data. Using this model we can then use our future estimates of air temperature (all 30 ensembles) to estimate water temperature at each site. The ensemble weather forecast will therefore propagate uncertainty into the water temperature forecast and give an estimate of driving data uncertainty. 
 
@@ -412,6 +410,7 @@ Is the linear model a reasonable relationship between air temperature and water 
 ```{r, echo=F, warning=F}
 ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
   geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm') +
   theme_bw()
 ```
 
@@ -432,7 +431,7 @@ It's really important that once you start submitting forecasts to the Challenge 
 1. We can keep track different forecast submissions during the scoring process to see which forecast is performing the best. Your `model_id` will be used to track the submissions so any new forecast model requires a new `model_id`.
 2. The form gives consent for submissions to be included in Challenge-wide syntheses being carried out by the Challenge organisers. Partipants in the Challenge will be invited to join the synthesis projects on an opt-in basis. 
 
-Questions about CHallenge registration and synthesis participation can be directed to [Freya Olsson](mailto:freyao@vt.edu). 
+Questions about Challenge registration and synthesis participation can be directed to [Freya Olsson](mailto:freyao@vt.edu). 
 
 # Model 2:  Persistence
 
@@ -455,14 +454,18 @@ options(dplyr.summarise.inform = FALSE)
 
 `fable` has some simple models that can be fitted to the target data. `fable` models require data to be in a tidy `tsibble` format. Tools for dealing with tsibble objects are found in the `tsibble` package. `tsibble` objects are similar in structure to `tibble` objects but have a built in timeseries element. This is specified in their creation as the  `index` or time variable. You also need to give the tsibble a `key`, which in combination with the index will uniquely identify each record. In our case the key variables will be `site_id` and `variable`. These models also require explicit gaps to be added for missing values (`fill_gaps()` will do this!).
 
-For Random Walk (RW) forecasts (i.e., persistence), we simply set the forecast value be the value of the last observation. 
+For Random Walk (RW) forecasts (i.e., persistence), we simply set the forecast value be the value of the last observation. Start by reading in the observations. We will look at water temperature to start with.
+
 The model would be specified and then the forecast generated as follows (using `fable` and `fabletools` functions). 
 
 To specify the model we use `model(RW = RW(observation))` and then the forecast can be created by piping this model to the `generate()` function. `h = 30` tells the model how far in the future to forecast, and `bootstrap = TRUE` tells the function to generate multiple uncertainty through bootstrapping. Bootstrapping is where we run the forecast multiple times with a random error term drawn from the residuals of the fitted model. Doing this repeatedly, we obtain many possible futures (an ensemble forecast). We decide how many of these possibilities to simulate with the `times =...` argument.
 
 Note: Running the next chunk will return an error. This is because there was no observation yesterday.
 ```{r, eval = F}
-RW_model <- targets %>% 
+targets_subset <- targets %>%
+  filter(site_id == 'SUGG') 
+
+RW_model <- targets_subset %>% 
   # fable requires a tsibble object with explicit gaps
   tsibble::as_tsibble(key = c('variable', 'site_id'), index = 'datetime') %>%
   tsibble::fill_gaps() %>%
@@ -474,9 +477,17 @@ RW_daily_forecast <- RW_model %>%
 ```
 
 The forecast produces an error ('the first lag window for simulations must be within the model's training set'). Why would that be? If you look at the targets data we can see that yesterday did not have an observation, so the model cannot produce a persistence forecast. 
-Specifying the model and forecasts in this way would be fine if we have data observed to yesterday but this often isn't the case. This is obviously not ideal, so we need to think of a way to produce forecasts with the data we have. Instead we can start the forecast at the last observation. The forecast is run from that observation through today and then for 30 days in the future. In practice this means telling fable to forecasts 30 days + the number of days since last observation and then cutting off all the day that are in the past before submitting the forecast.
 
-We calculate the `reference_datetime` and total `horizon` for each `site_id` and `variable` combination (here just temperature).  
+```{r}
+targets |> 
+  filter(site_id == 'SUGG') |> 
+  summarise(last_ob = max(datetime)) |> 
+  pull()
+```
+
+Specifying the model and forecasts in this way would be fine if we have data observed to yesterday but this often isn't the case. For the NEON data the usual data latency is between 24-72 hours. This is obviously not ideal, but we need to think of a way to produce forecasts with the data we have. Instead we can start the forecast at the last observation, rather than yesterday. The forecast is run from that observation through today and then for 30 days in the future. In practice this means telling fable to forecasts 30 days + the number of days since last observation and then trimming the days that are in the past, before submitting the forecast.
+
+We calculate the `reference_datetime` (starting data) and total `horizon` for each `site_id` and `variable` combination (here just temperature).  
 
 ```{r message=F}
 # For the RW model need to start the forecast at the last non-NA day and then run to 30 days in the future
@@ -500,7 +511,7 @@ You can see that the sites have different start dates, based on when the last ob
 
 Within this function, there are also if statements to test whether there are whole datasets missing, as well as messages which can be turned on/off with the `verbose = ` argument. 
 
-Note: if we hadn't filtered the targets to just include temperature in the lakes, we could use this function in the same way to also produce RW (peristence) forecasts of the other sites and variables. 
+ 
 ```{r warning=FALSE, message =FALSE}
 # Function carry out a random walk forecast
 RW_daily_forecast <- function(site, 
@@ -585,8 +596,11 @@ The number of bootstraps (`boot_number`) is set to 200. It might also be useful 
 
 We can then loop through each variable and site (row) and combine them into a single data frame (`RW_forecasts`).
 ```{r message = F}
-site_var_combinations <- expand.grid(var = unique(targets$variable),
-                                     site = unique(targets$site_id)) %>%
+site_var_combinations <- forecast_starts |> 
+  select(site_id, variable) |> 
+  rename(site = site_id,
+         var = variable) |> 
+  
   # assign the transformation depending on the variable. 
   # For example chla and oxygen might require a log(x ) transformation
   mutate(transformation = ifelse(var %in% c('chla', 'oxygen'), 
@@ -628,12 +642,18 @@ How reasonable are these forecasts?? Is there a way to improve the persistence m
 
 ```{r, message = F, warning = F, echo = F,fig.dim=c(10,10), fig.cap = "Figure: 'random walk' persistence forecasts for NEON lake sites"}
 RW_forecast %>% 
+  filter(site_id %in% c('SUGG', 'BARC',
+                        'LIRO', 'CRAM',
+                        'PRPO', 'PRLA', 'TOOK'),
+         variable == 'temperature') %>%
   ggplot(.,aes(x=datetime, y=.sim, group = .rep)) + geom_line(alpha = 0.4) + 
   # geom_point(data = subset(targets, site_id == 'SUGG'),
   #           aes(x=datetime, y=observation, group = 'obs'), colour = 'black') +
   facet_grid(variable~site_id, scales = 'free') + 
   theme_bw() +
-  geom_point(data = targets,
+  geom_point(data = subset(targets, site_id %in% c('SUGG', 'BARC',
+                                                   'LIRO', 'CRAM',
+                                                   'PRPO', 'PRLA', 'TOOK') & variable == 'temperature' ),
              aes(x=datetime, y=observation, group = 'obs'), colour = 'black') +
   theme(legend.position = 'none') +
   coord_cartesian(xlim = c(min(forecast_starts$reference_datetime[which(forecast_starts$site_id == 'SUGG')]) - 10,
@@ -643,7 +663,7 @@ RW_forecast %>%
   geom_vline(xintercept = Sys.Date(), linetype = 'dashed')
 ```
 
-Each line on the plot is one of the ensemble members (shown in the fable as `.rep`). You can also see that not all the "forecasted" days are true forecasts (some are in the past), but we started the forecast at the last observation. Therefore when we write out the forecast and submit it we need to make sure to only submit the true forecast (of the future). 
+Each line on the plot is one of the ensemble members (shown in the fable as `.rep`). You can also see that not all the "forecasted" days are true forecasts (some are in the past), but we started the forecast at the last observation. Therefore, when we write out the forecast and submit it we need to make sure to only submit the true forecast (of the future). 
 
 ## Convert to EFI standard for submission
 For an ensemble forecast the documentation specifies the following columns:
@@ -661,9 +681,14 @@ Looking back at the forecasts we produced:
 
 ```{r echo=F, fig.dim=c(10,10), fig.cap='annotated forecasts', warning=FALSE}
 RW_forecast %>% 
-  filter(variable == 'temperature') %>%
+  filter(site_id %in% c('SUGG', 'BARC',
+                        'LIRO', 'CRAM',
+                        'PRPO', 'PRLA', 'TOOK'),
+         variable == 'temperature') %>%
   ggplot(.,aes(x=datetime, y=.sim, group = .rep)) + 
-  geom_point(data = targets,
+  geom_point(data = subset(targets, site_id %in% c('SUGG', 'BARC',
+                        'LIRO', 'CRAM',
+                        'PRPO', 'PRLA', 'TOOK') & variable == 'temperature'),
              aes(x=datetime, y=observation, group = 'obs'), colour = 'darkblue') +
   geom_line(alpha = 0.3, aes(colour = 'ensemble member (parameter\n1 - 200)')) + 
   facet_wrap(~site_id, scales = 'free_y') +
@@ -692,6 +717,7 @@ RW_forecast %>%
 The forecast output from `fable` needs modifying slightly to fit the Challenge standards. 
 
 ```{r}
+model_name <- 'example_RW'
 RW_forecasts_EFI <- RW_forecast %>%
   rename(parameter = .rep,
          prediction = .sim) %>%
@@ -699,8 +725,8 @@ RW_forecasts_EFI <- RW_forecast %>%
   filter(datetime > Sys.Date()) %>%
   mutate(reference_datetime = min(datetime) - lubridate::days(1),
          family = 'ensemble',
-         model_id = 'GLEON_RW') %>%
-  select(datetime, reference_datetime, site_id, family, parameter, variable, prediction, model_id) 
+         model_id = model_name) %>%
+  select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction) 
 ```
 
 Now we have a forecast that can be submitted to the EFI challenge. 
@@ -714,7 +740,7 @@ head(RW_forecasts_EFI)
 # Start by writing the forecast to file
 theme <- 'aquatics'
 date <- RW_forecasts_EFI$reference_datetime[1]
-forecast_name_2 <- 'GLEON_RW_forecast.csv'
+forecast_name_2 <- paste0(RW_forecasts_EFI$model_id[1], ".csv")
 forecast_file_2 <- paste(theme, date, forecast_name_2, sep = '-')
 
 write_csv(RW_forecasts_EFI, forecast_file_2)
@@ -750,11 +776,10 @@ Possible modifications to the persistence RW model:
 
 
 
+# Model 3: Climatology model
 
-# Model 3: Seasonal naive model
-
-An alternative approach is to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value given the specified lag. When we specify the lag to by 1 year, it will provide the forecast as the observations from the same day the previous year. 
-Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble with `variable` and `site_id` as the keys and `datetime` as the index. 
+An alternative approach is to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value, given the specified lag. When we specify the lag to by 1 year, it will provide a forecast that is the observations from the same day the previous year, also known as a climatology model. 
+Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble object with `variable` and `site_id` as the keys and `datetime` as the index. 
 Then the `SNAIVE` model is fit with a 1 year lag.  One useful thing that the fable package can do is that it fits the specified models to each `key` pairing (variable, site_id) so you don't have to specify each model for each site and variable separately (we did not do this in Model 2 because each site and variable has a different date of last observation). 
 
 ```{r, warning = F}
@@ -801,7 +826,8 @@ convert_to_efi_standard <- function(df, model_id){
     dplyr::rename('prediction' = var) %>%
     mutate(family = "normal",
            reference_datetime = min(datetime) - lubridate::days(1),
-           model_id = model_id) %>%
+           model_id = model_id, 
+           variable = 'temperature') %>%
     select(any_of(c('model_id', 'datetime', 'reference_datetime', 
                     'site_id', 'family', 'parameter', 'variable', 'prediction')))
 }
@@ -809,8 +835,9 @@ convert_to_efi_standard <- function(df, model_id){
 ```
 
 ```{r warning = FALSE}
+model_name <- 'example_climatology'
 SN_forecast_EFI <- convert_to_efi_standard(SN_forecast, 
-                                           model_id = 'GLEON_SN')
+                                           model_id = model_name)
 ```
 ```{r echo = FALSE}
 SN_forecast_EFI
@@ -840,9 +867,10 @@ You can see that there are gaps in the forecasts. This is where there was no obs
 ## Write the forecast for NEON EFI challenge
 ```{r eval = T}
 # Start by writing the forecast to file
+# Start by writing the forecast to file
 theme <- 'aquatics'
-date <- SN_forecast_EFI$reference_datetime[1]
-forecast_name_3 <- 'GLEON_SN_forecast.csv' #this is our third model I think?
+date <- RW_forecasts_EFI$reference_datetime[1]
+forecast_name_3 <- paste0(SN_forecast_EFI$model_id[1], ".csv")
 forecast_file_3 <- paste(theme, date, forecast_name_3, sep = '-')
 
 write_csv(SN_forecast_EFI, forecast_file_3)
@@ -863,12 +891,12 @@ neon4cast::submit(forecast_file = forecast_file_3,
 ```
 
 ## TASKS
-Possible modifications to Model 3 - Seasonal Naive Model (lines x-x):
+Possible modifications to Model 3 - Seasonal Naive Model:
 
 * Fill gaps in forecasts - how could we modify the targets/forecast to get a continuous forecast for all sites
-* Explore Seasonal Naive and other simple models in [fable](https://otexts.com/fpp3/simple-methods.html)
+* Explore Seasonal Naive and other simple models in [fable](https://otexts.com/fpp3/simple-methods.html), try adding a drift parameter (a long-term warming trend for example)
 * Can we change the lag in the model?
-* Another type of climatology model could include data from all years of historic data (easier outside fable)
+* Another type of climatology model could include data from all years of historic data (easier to implement outside fable)
 
 
 
@@ -881,6 +909,7 @@ The Challenge implements methods from the scoringRules R package to calculate th
 Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
 
 EFI has also produced a package that summarizes the proposed community standards for the common formatting and archiving of ecological forecasts. Such open standards are intended to promote interoperability and facilitate forecast adoption, distribution, validation, and synthesis ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html#efistandards-package) and [github](https://github.com/eco4cast/EFIstandards))
+
 ## Other weather variables 
 You can look at what other variables are available in the NOAA weather data. There's information in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html) too.
 
