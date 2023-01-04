@@ -903,7 +903,9 @@ Possible modifications to Model 3 - Seasonal Naive Model:
 # Other things that might be useful
 
 ## How the forecasts are scored?
-The Challenge implements methods from the scoringRules R package to calculate the Continuous Rank Probability Score (CRPS) via the `score4cast` package. This scores the optimum is the minimum value, so we are aiming for as small a value as possible. CRPS uses information about the variance of the forecasts as well as the estimated mean to calculate the score. There is some balance between accuracy and precision. The forecasts will also be compared with 'null' models (RW and climatology) More info in the [documentation](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html) or the `score4cast` package from EFI organizers [here](https://github.com/eco4cast/score4cast). 
+The Challenge implements methods from the scoringRules R package to calculate the Continuous Rank Probability Score (CRPS) via the `score4cast` package. This scores the optimum is the minimum value, so we are aiming for as small a value as possible. CRPS uses information about the variance of the forecasts as well as the estimated mean to calculate the score by comparing it with the observation. There is some balance between accuracy and precision. The forecasts will also be compared with 'null' models (RW and climatology) More info can be found in the [documentation](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html) or the `score4cast` package from EFI organizers [here](https://github.com/eco4cast/score4cast). 
+
+You can view past submissions [here:](https://shiny.ecoforecast.org/). You can also the raw scores from the bucket directly. Have a look at the get_scores.R file.
 
 ## Other useful R packages
 Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
