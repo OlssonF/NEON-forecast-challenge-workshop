@@ -1,5 +1,5 @@
 # NEON-forecast-challenge workshop for GLEON2022
-Repo for the workshop materials used in the Forecast Challenge part of the GLEON2022 workshop.
+This is a repository for for the workshop materials initally used in the Forecast Challenge part of the GLEON2022 workshop.
 
 ```{r gh-installation, eval = FALSE}
 The following packages will need to be installed
