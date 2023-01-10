@@ -2,7 +2,8 @@
 title: "NEON forecast challenge"
 author: Freya Olsson
 output:
-  html_document: 
+  md_document: 
+    variant: markdown_github
     number_sections: true
     toc: true
 date: "`r Sys.Date()`"
