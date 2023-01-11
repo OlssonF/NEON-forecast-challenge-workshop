@@ -46,7 +46,7 @@ version$version.string
 
 ```
 
-If you do not wish to run the code yourself you can follow along via the html (GLEON_forecast_challenge.html), which can be downloaded from the [Github repository](https://github.com/OlssonF/GLEON-forecast-challenge). 
+If you do not wish to run the code yourself you can follow along via the html (GLEON_forecast_challenge.md), which can be downloaded from the [Github repository](https://github.com/OlssonF/GLEON-forecast-challenge). 
 
 # Introduction to NEON forecast challenge
 
@@ -138,7 +138,7 @@ We can think about what type of models might be useful to predict these variable
 
 * We could use information about current conditions to predict the next day. What is happening today is usually a good predictor of what will happen tomorrow (Model 2 - Persistence). 
 * We could also look at the lake variables' relationship(s) with other variable. Could we use existing forecasts about the weather to generate forecasts about lake variables (Model 1 - Linear Model with Co-variates).
-* And we could think about what the historic data tells us about this time of year. November this year is likely to be similar to November last year (Model 3 - Climatology/Seasonal Naive Model)
+* And we could think about what the historic data tells us about this time of year. January this year is likely to be similar to January last year (Model 3 - Climatology/Seasonal Naive Model)
 
 To start, we will produce forecasts for just one of these target variables, surface water temperature.
 ```{r}
@@ -202,7 +202,7 @@ We can then look at the future weather forecasts in the same way but using the `
 # New forecast only available at 5am UTC the next day
 
 forecast_date <- Sys.Date() 
-noaa_date <- forecast_date - days(1)
+noaa_date <- forecast_date - days(2)
 
 df_future <- neon4cast::noaa_stage2()
 
@@ -232,7 +232,7 @@ noaa_future_daily <- noaa_future |>
 
 noaa_future_daily
 ```
-Now we have a timeseries of historic data and a 30 member ensemble forecast of future temperatures
+Now we have a timeseries of historic data and a 30 member ensemble forecast of future air temperatures
 
 ```{r echo = F, fig.cap = c('Figure: historic and future NOAA air temeprature forecasts at lake sites', 'Figure: last two months of historic air temperature forecasts and 35 day ahead forecast')}
 ggplot(noaa_future_daily, aes(x=datetime, y=air_temperature)) +
@@ -291,6 +291,7 @@ We can loop through this for each site to create a site-wise forecast of water t
 temp_lm_forecast <- NULL
 
 for(i in 1:length(lake_sites$field_site_id)) {  
+  
   example_site <- lake_sites$field_site_id[i]
   
   site_target <- targets_lm |>
@@ -403,7 +404,7 @@ neon4cast::forecast_output_validator(forecast_file_1)
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
 neon4cast::submit(forecast_file = forecast_file_1,
-                  ask = TRUE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
+                  ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
 Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using yesterday's air and water temperatures to predict tomorrow? Or including additional parameters? There's a lot of variability in water temperatures unexplained by air temperature alone.
@@ -906,7 +907,7 @@ Possible modifications to Model 3 - Seasonal Naive Model:
 ## How the forecasts are scored?
 The Challenge implements methods from the scoringRules R package to calculate the Continuous Rank Probability Score (CRPS) via the `score4cast` package. This scores the optimum is the minimum value, so we are aiming for as small a value as possible. CRPS uses information about the variance of the forecasts as well as the estimated mean to calculate the score by comparing it with the observation. There is some balance between accuracy and precision. The forecasts will also be compared with 'null' models (RW and climatology) More info can be found in the [documentation](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html) or the `score4cast` package from EFI organizers [here](https://github.com/eco4cast/score4cast). 
 
-You can view past submissions [here:](https://shiny.ecoforecast.org/). You can also the raw scores from the bucket directly. Have a look at the get_scores.R file.
+You can view past submissions [here:](https://projects.ecoforecast.org/neon4cast-dashboard/aquatics.html). You can also the raw scores from the bucket directly. Have a look at the get_scores.R file.
 
 ## Other useful R packages
 Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
