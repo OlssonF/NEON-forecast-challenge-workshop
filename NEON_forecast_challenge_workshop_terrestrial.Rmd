@@ -320,6 +320,8 @@ df_future <- neon4cast::noaa_stage2()
 variables <- c("air_temperature", "surface_downwelling_shortwave_flux_in_air")
 
 lm_forecast <- NULL
+model_fit <- NULL
+
 
 for(i in 1:length(site_data$field_site_id)) {  
   
@@ -394,6 +396,13 @@ for(i in 1:length(site_data$field_site_id)) {
   
   lm_forecast <- dplyr::bind_rows(lm_forecast, NEE)
   message(site, ' NEE forecast run')
+  
+  # extract the model fit
+  # you can comment/uncomment this out to extract the R-squared from the model summary
+  
+  # model_fit <- dplyr::bind_rows(model_fit, data.frame(site_id = site,
+  #                                                     r_squared = summary(fit)$r.squared))
+  
   
 }
 ```
