@@ -11,6 +11,8 @@ date: "`r Sys.Date()`"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+options(dplyr.summarise.inform = FALSE)
 ```
 
 # This R markdown document
@@ -269,79 +271,134 @@ noaa_future_daily_example |>
 
 # Model 1: Linear model with covariates
 
-We will fit a simple linear model between historic air temperature, shortwave radiation and the net ecosystem exchange targets data. Using this model we can then use our future estimates of air temperature (all 30 ensembles) to estimate water temperature at each site. The ensemble weather forecast will therefore propagate uncertainty into the water temperature forecast and give an estimate of driving data uncertainty. 
+We will fit a simple linear model between historic air temperature, shortwave radiation and the net ecosystem exchange targets data. Using this model we can then use our future estimates of air temperature (all 30 ensembles) to estimate nee. The ensemble weather forecast will therefore propagate uncertainty into the nee forecast and give an estimate of driving data uncertainty. 
 
 We will start by joining the historic weather data with the targets to aid in fitting the linear model.
 
-```{r}
-targets_lm <- targets |> 
+```{r, }
+targets_lm_example <- targets |> 
+  filter(site_id %in% example_site) |> 
   pivot_wider(names_from = 'variable', values_from = 'observation') |> 
-  left_join(noaa_past_mean, 
+  left_join(noaa_past_mean_example, 
             by = c("datetime","site_id"))
-tail(targets_lm)
+tail(targets_lm_example)
 ```
 
 
-To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. You can explore the [documentation](https://otexts.com/fpp3/regression.html) for more information on the `fable::TSLM()` function. We can fit a separate linear model for each site. For example, at ABBYhaven Woodland (ABBY), this would look like:
+To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. You can explore the [documentation](https://otexts.com/fpp3/regression.html) for more information on the `fable::TSLM()` function. We can fit a separate linear model for each site. For example, at ABBY Road Woodland (ABBY), this would look like:
 
 ```{r, eval = F}
-example_site <- 'ABBY'
-
-site_target <- targets_lm |> 
-  filter(site_id == example_site)
-
-noaa_future_site <- noaa_future_daily |> 
-  filter(site_id == example_site)
 
 #Fit linear model based on past data: water temperature = m * air temperature + b
-fit <- lm(site_target$nee ~ site_target$air_temperature + site_target$shortwave)
+fit <- lm(targets_lm_example$nee ~ targets_lm_example$air_temperature + targets_lm_example$shortwave)
     
 # use linear regression to forecast water temperature for each ensemble member
 forecasted_nee <- fit$coefficients[1] + 
-  (fit$coefficients[2] * noaa_future_site$air_temperature) + 
-  (fit$coefficients[3] * noaa_future_site$shortwave)
+  (fit$coefficients[2] * noaa_future_daily_example$air_temperature) + 
+  (fit$coefficients[3] * noaa_future_daily_example$shortwave)
 
 ```
-We can loop through this for each site to create a site-wise forecast of NEE based on a linear model and each forecasted air temperature and shortwave. We can run this forecast for each site and then bind them together to submit as one forecast. 
 
+We can loop through this workflow for each site to create a site-wise forecast of NEE based on a linear model and each forecasted air temperature and shortwave. We can run this forecast for each site and then bind them together to submit as one forecast. 
+ 
+1. Download historic NOAA data
+2. Download future NOAA
+3. Fit the model
+4. Forecast!
+5. Bind this all together...
 
-## Specify forecast model
-
+Note: This loop takes a few minutes to execute so start it running as soon as possible...
 ```{r}
+# Create the connections to data products
+df_past <- neon4cast::noaa_stage3()
+
+forecast_date <- Sys.Date() 
+noaa_date <- forecast_date - days(1)
+df_future <- neon4cast::noaa_stage2()
+
+# specify the covariates
+variables <- c("air_temperature", "surface_downwelling_shortwave_flux_in_air")
+
 lm_forecast <- NULL
 
 for(i in 1:length(site_data$field_site_id)) {  
   
-  example_site <- site_data$field_site_id[i]
+  site <- site_data$field_site_id[i]
   
-  site_target <- targets_lm |>
-    filter(site_id == example_site)
+  # 1. Download historic NOAA data
+  noaa_past <- df_past |> 
+    dplyr::filter(site_id %in% site,
+                  datetime >= ymd('2017-01-01'),
+                  variable %in% variables) |> 
+    dplyr::collect()
+  
+  # calculate a daily mean to fit the model
+  noaa_past_daily <- noaa_past |> 
+    mutate(datetime = as_date(datetime)) |> 
+    group_by(datetime, site_id, variable) |> 
+    summarize(prediction = mean(prediction, na.rm = TRUE), .groups = "drop") |> 
+    pivot_wider(names_from = variable, values_from = prediction) |> 
+    # convert air temp to C
+    rename(shortwave = surface_downwelling_shortwave_flux_in_air) |> 
+    mutate(air_temperature = air_temperature - 273.15)
+  
+  message('Stage 3 for ', site)
 
-  noaa_future_site <- noaa_future_daily |> 
-    filter(site_id == example_site)
+  
+  #2. Download future NOAA data
+  # Download the stage2 data
+  noaa_future <- df_future |> 
+    dplyr::filter(reference_datetime == noaa_date,
+                  datetime >= forecast_date,
+                  site_id %in% site,
+                  variable %in% variables) |> 
+    dplyr::collect()
+  
+  # generate a mean daily forecast to use in the forecast
+  noaa_future_daily <- noaa_future |> 
+    mutate(datetime = as_date(datetime)) |> 
+    # mean daily forecasts at each site per ensemble
+    group_by(datetime, site_id, parameter, variable) |> 
+    summarize(prediction = mean(prediction)) |>
+    pivot_wider(names_from = variable, values_from = prediction) |>
+    # convert to Celsius
+    mutate(air_temperature = air_temperature - 273.15) |> 
+    rename(shortwave = surface_downwelling_shortwave_flux_in_air) |> 
+    select(datetime, site_id, air_temperature, shortwave, parameter)
+  
+   message('Stage 2 for ', site)
+  
+  #3. Fit the model
+    # targets data reformatted to aid model fitting
+
+   targets_lm <- targets |> 
+     filter(site_id == site) |> 
+     pivot_wider(names_from = 'variable', values_from = 'observation') |> 
+     left_join(noaa_past_daily, 
+            by = c("datetime","site_id"))
   
   #Fit linear model based on past data
-  fit <- lm(site_target$nee ~ site_target$air_temperature + site_target$shortwave)
+  fit <- lm(targets_lm$nee ~ targets_lm$air_temperature + targets_lm$shortwave)
     
   # use linear regression to forecast water temperature for each ensemble member
   forecasted_nee <- fit$coefficients[1] + 
-    (fit$coefficients[2] * noaa_future_site$air_temperature) + 
-    (fit$coefficients[3] * noaa_future_site$shortwave)
+    (fit$coefficients[2] * noaa_future_daily$air_temperature) + 
+    (fit$coefficients[3] * noaa_future_daily$shortwave)
     
   # put all the relavent information into a tibble that we can bind together
-  NEE <- tibble(datetime = noaa_future_site$datetime,
-                        site_id = example_site,
-                        parameter = noaa_future_site$parameter,
+  NEE <- tibble(datetime = noaa_future_daily$datetime,
+                        site_id = site,
+                        parameter = noaa_future_daily$parameter,
                         prediction = forecasted_nee,
                         variable = "nee")
   
   lm_forecast <- dplyr::bind_rows(lm_forecast, NEE)
-  message(example_site, ' NEE forecast run')
+  message(site, ' NEE forecast run')
   
 }
 ```
 
-We now have 30 possible forecasts of water temperature at each site and each day. On this plot each line represents one of the possible forecasts and the range of forecasted water temperature is a simple quantification of the uncertainty in our forecast.
+We now have 30 possible forecasts of NEE at each site and each day. On this plot each line represents one of the possible forecasts and the range of forecasted NEE is a simple quantification of the uncertainty in our forecast.
 
 Looking back at the forecasts we produced:
 
