@@ -171,10 +171,10 @@ You can read more about the NOAA forecasts available for the NEON sites [here:](
 ## Download co-variates
 ### Download historic data
 
-We will generate a `nee` forecast using `air_temperature` and `solar_radiation` as a co-variates. As an example of the workflow we will work with 1 site - ABBY (Abby Road Evergreen forecast).
+We will generate a `nee` forecast using `air_temperature` and `solar_radiation` as a co-variates. As an example of the workflow we will work with 1 site - DELA (Dead Lake deciduous forest).
 
 ```{r, message=FALSE}
-example_site <- 'ABBY'
+example_site <- 'DELA'
 
 # past stacked weather
 df_past <- neon4cast::noaa_stage3()
@@ -251,19 +251,19 @@ Now we have a timeseries of historic data and a 30 member ensemble forecast of f
 
 ```{r echo = F, fig.cap = c('Figure: historic and future NOAA air temeprature forecasts for 1 NEON site', 'Figure: historic and future NOAA shortwave forecasts for 1 NEON site ')}
 noaa_future_daily_example |> 
-  filter(site_id == 'ABBY') |> 
+  filter(site_id == 'DELA') |> 
   ggplot(aes(x=datetime, y=air_temperature)) +
   geom_line(aes(group = parameter), alpha = 0.4)+
-  geom_line(data = subset(noaa_past_mean_example, site_id == 'ABBY'), colour = 'darkblue') +
+  geom_line(data = subset(noaa_past_mean_example, site_id == 'DELA'), colour = 'darkblue') +
   coord_cartesian(xlim = c(noaa_date - days(60),
                            noaa_date + days(35)))+
   facet_wrap(~site_id, scales = 'free')
 
 noaa_future_daily_example |> 
-  filter(site_id == 'ABBY') |> 
+  filter(site_id == 'DELA') |> 
   ggplot(aes(x=datetime, y=shortwave)) +
   geom_line(aes(group = parameter), alpha = 0.4)+
-  geom_line(data = subset(noaa_past_mean_example, site_id == 'ABBY'), colour = 'darkblue') +
+  geom_line(data = subset(noaa_past_mean_example, site_id == 'DELA'), colour = 'darkblue') +
   coord_cartesian(xlim = c(noaa_date - days(60),
                            noaa_date + days(35)))+
   facet_wrap(~site_id, scales = 'free')
@@ -285,7 +285,7 @@ tail(targets_lm_example)
 ```
 
 
-To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. You can explore the [documentation](https://otexts.com/fpp3/regression.html) for more information on the `fable::TSLM()` function. We can fit a separate linear model for each site. For example, at ABBY Road Woodland (ABBY), this would look like:
+To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. You can explore the [documentation](https://otexts.com/fpp3/regression.html) for more information on the `fable::TSLM()` function. We can fit a separate linear model for each site. For example, at DELA Woodland (DELA), this would look like:
 
 ```{r, eval = F}
 
@@ -413,11 +413,11 @@ Looking back at the forecasts we produced:
 
 ```{r, echo = F, warning = F}
 lm_forecast %>% 
-  filter(site_id %in% c('ABBY', 'BARR')) |> 
+  filter(site_id %in% c('DELA', 'BARR')) |> 
   ggplot(aes(x=datetime, y=prediction, group = parameter)) + 
-  geom_point(data = subset(targets, site_id == 'ABBY'),
+  geom_point(data = subset(targets, site_id %in% c('DELA', 'BARR')),
              aes(x=datetime, y=observation, group = 'obs'), colour = 'darkblue') +
-  geom_line(alpha = 0.3, aes(colour = 'ensemble member (parameter)')) + 
+  geom_line(alpha = 0.5, aes(colour = 'ensemble member (parameter)')) + 
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
   facet_wrap(~site_id) +
