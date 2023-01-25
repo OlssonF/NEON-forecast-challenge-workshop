@@ -404,7 +404,7 @@ Looking back at the forecasts we produced:
 
 ```{r, echo = F, warning = F}
 lm_forecast %>% 
-  filter(site_id == 'ABBY') |> 
+  filter(site_id %in% c('ABBY', 'BARR')) |> 
   ggplot(aes(x=datetime, y=prediction, group = parameter)) + 
   geom_point(data = subset(targets, site_id == 'ABBY'),
              aes(x=datetime, y=observation, group = 'obs'), colour = 'darkblue') +
@@ -486,18 +486,7 @@ neon4cast::submit(forecast_file = forecast_file_1,
                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using yesterday's air and water temperatures to predict tomorrow? Or including additional parameters? There's a lot of variability in water temperatures unexplained by air temperature alone.
-
-```{r, echo=F, warning=F}
-targets_lm |> 
-  filter(site_id %in% c('ABBY', 'BART')) |> 
-  ggplot( aes(x=air_temperature, y= nee, colour = shortwave)) +
-  facet_wrap(~site_id, scales = 'free') +
-  geom_point(alpha = 0.5) +
-  # geom_smooth(method = 'lm') +
-  theme_bw()
-```
-
+Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using maximum shortwave to predict NEE? Or including additional parameters? 
 
 ## TASKS
 Possible modifications to Model 1 - simple linear model: 
@@ -514,4 +503,3 @@ It's really important that once you start submitting forecasts to the Challenge 
 
 1. We can keep track different forecast submissions during the scoring process to see which forecast is performing the best. Your `model_id` will be used to track the submissions so any new forecast model requires a new `model_id`.
 2. The form gives consent for submissions to be included in Challenge-wide syntheses being carried out by the Challenge organisers. Partipants in the Challenge will be invited to join the synthesis projects on an opt-in basis. 
-
