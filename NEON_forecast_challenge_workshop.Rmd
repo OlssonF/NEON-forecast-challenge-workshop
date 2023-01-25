@@ -1,5 +1,5 @@
 ---
-title: "NEON forecast challenge"
+title: "NEON forecast challenge - aquatics"
 author: Freya Olsson
 output:
   md_document: 
@@ -46,7 +46,7 @@ version$version.string
 
 ```
 
-If you do not wish to run the code yourself you can follow along via the html (GLEON_forecast_challenge.md), which can be downloaded from the [Github repository](https://github.com/OlssonF/GLEON-forecast-challenge). 
+If you do not wish to run the code yourself you can follow along via the html (NEON_forecast_challenge_workshop.md), which can be downloaded from the [Github repository](https://github.com/OlssonF/NEON-forecast-challenge-workshop). 
 
 # Introduction to NEON forecast challenge
 
@@ -62,11 +62,11 @@ Where: 7 lakes and 27 river/stream NEON sites.
 
 When: Daily forecasts for at least 30-days in the future. New forecast submissions, that use new data to update the forecast, are accepted daily. The only requirement is that submissions are predictions of the future at the time the forecast is submitted.
 
-Today we will focus on lake sites only, as used in the MacrosystemEDDIE modules, and will start with forecasting water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html).
+Today we will focus on lake sites only and will start with forecasting water temperature. For the challenge, you can chose to submit to either the lakes, rivers or streams or all three! You can also chose to submit any of the three focal variables (temperature, oxygen, and chlorophyll). Find more information about the aquatics challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Aquatics.html).
 
 ## Submission requirements
 
-For the Challanges forecasts must include quantified uncertainty. The file can represent uncertainty using an ensemble forecast (multiple realizations of future conditions) or a distribution forecast (with mean and standard deviation), specified in the family and parameter columns of the forecast file. 
+For the Challange, forecasts must include quantified uncertainty. The file can represent uncertainty using an ensemble forecast (multiple realizations of future conditions) or a distribution forecast (with mean and standard deviation), specified in the family and parameter columns of the forecast file. 
 
 For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have the words mu and sigma for each forecasted variable, site_id, and datetime. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
 
