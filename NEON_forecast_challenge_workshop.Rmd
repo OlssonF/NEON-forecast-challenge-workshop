@@ -11,8 +11,6 @@ date: "`r Sys.Date()`"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(lubridate)
 ```
 
 # This R markdown document
@@ -44,6 +42,8 @@ Additionally, R version 4.2 is required to run the neon4cast package. It's also 
 ```{r}
 version$version.string
 
+library(tidyverse)
+library(lubridate)
 ```
 
 If you do not wish to run the code yourself you can follow along via the html (NEON_forecast_challenge_workshop.md), which can be downloaded from the [Github repository](https://github.com/OlssonF/NEON-forecast-challenge-workshop). 
@@ -170,7 +170,7 @@ Note: This code chunk can take a few minutes to execute as it accesses the NOAA 
 df_past <- neon4cast::noaa_stage3()
 
 variables <- c("air_temperature")
-#Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-2
+#Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-3
 
 noaa_past <- df_past |> 
   dplyr::filter(site_id %in% lake_sites$field_site_id,
@@ -202,7 +202,7 @@ We can then look at the future weather forecasts in the same way but using the `
 # New forecast only available at 5am UTC the next day
 
 forecast_date <- Sys.Date() 
-noaa_date <- forecast_date - days(2)
+noaa_date <- forecast_date - days(1)
 
 df_future <- neon4cast::noaa_stage2()
 
@@ -214,7 +214,6 @@ noaa_future <- df_future |>
                 site_id %in% lake_sites$field_site_id,
                 variable %in% variables) |> 
   dplyr::collect()
-noaa_future
 ```
 
 The forecasts are hourly and we are interested in using daily mean air temperature for water temperature forecast generation.
@@ -260,6 +259,7 @@ targets_lm <- targets |>
   pivot_wider(names_from = 'variable', values_from = 'observation') |> 
   left_join(noaa_past_mean, 
             by = c("datetime","site_id"))
+
 targets_lm[1000:1010,]
 ```
 
@@ -282,6 +282,7 @@ fit <- lm(site_target$temperature ~ site_target$air_temperature)
 forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_future_site$air_temperature
 
 ```
+
 We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature. We can run this forecast for each site and then bind them together to submit as one forecast. 
 
 
@@ -368,7 +369,7 @@ We need to make sure the dataframe is in the correct format and then we can subm
 
 ```{r}
 # Remember to change the model_id when you make changes to the model structure!
-my_model_id <- 'temp_name'
+my_model_id <- 'GLEON_temp_name'
 
 temp_lm_forecast_EFI <- temp_lm_forecast %>%
   mutate(model_id = my_model_id,
