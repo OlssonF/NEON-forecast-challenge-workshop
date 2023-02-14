@@ -188,14 +188,14 @@ noaa_past_example <- df_past |>
                 variable %in% variables) |> 
   dplyr::collect()
 
-noaa_past[1:10,]
+noaa_past_example[1:10,]
 ```
 
 This is a stacked ensemble forecast of the one day ahead hourly forecasts. To get an estimate of the historic conditions we can take a mean of these ensembles. We will also need to convert the temperatures to Celsius from Kelvin.
 
 ```{r}
 # aggregate the past to mean values
-noaa_past_mean_example <- noaa_past |> 
+noaa_past_mean_example <- noaa_past_example |> 
   mutate(datetime = as_date(datetime)) |> 
   group_by(datetime, site_id, variable) |> 
   summarize(prediction = mean(prediction, na.rm = TRUE), .groups = "drop") |> 
