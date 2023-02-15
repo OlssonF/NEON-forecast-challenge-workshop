@@ -323,6 +323,19 @@ forecasted_nee <- fit$coefficients[1] +
   
   ggplot(NEE, aes(x = datetime, y = prediction, group = parameter)) +
     geom_line()
+  
+  
+  
+  #Some edits would be needed to submit to the challenge... see commented code
+  
+  #   my_model_id <- 'nee_test'
+  # 
+  # NEE_forecast_EFI <- NEE %>%
+  #   mutate(model_id = my_model_id,
+  #          reference_datetime = as_date(min(datetime)) - days(1),
+  #          family = 'ensemble',
+  #          parameter = as.character(parameter)) %>%
+  # select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction)
 ```
   
 We can loop through this workflow for each site to create a site-wise forecast of NEE based on a linear model and each forecasted air temperature and shortwave. We can run this forecast for each site and then bind them together to submit as one forecast. 
