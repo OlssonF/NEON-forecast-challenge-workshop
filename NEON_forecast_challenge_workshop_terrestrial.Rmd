@@ -66,11 +66,11 @@ Where: 47 NEON sites across the U.S. and Puerto Rico.
 
 When: Daily forecasts for at least 30-days in the future. New forecast submissions, that use newly collected data, are accepted daily. The only requirement is that submissions are predictions of the future at the time the forecast is submitted.
 
-Today we will focus on forecasts of net ecosystem exchange of CO2 (NEE) at a daily timestep in  g C m-2 day-1. Negative values correspnd to an ecosystem absorbing CO2 from the atmosphere, positive values correspond to an ecosystem emitting CO2 to the atmosphere. Find more information about the terrestrial challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Terrestrial.html).
+Today we will focus on forecasts of net ecosystem exchange of CO2 (NEE) at a daily timestep in  g C m-2 day-1. Negative values correspond to an ecosystem absorbing CO2 from the atmosphere, positive values correspond to an ecosystem emitting CO2 to the atmosphere. Find more information about the terrestrial challenge [here](https://projects.ecoforecast.org/neon4cast-docs/Terrestrial.html).
 
 ## Submission requirements
 
-For the Challange, forecasts must include quantified uncertainty. The file can represent uncertainty using an ensemble forecast (multiple realizations of future conditions) or a distribution forecast (with mean and standard deviation), specified in the family and parameter columns of the forecast file. 
+For the Challenge, forecasts must include quantified uncertainty. The file can represent uncertainty using an ensemble forecast (multiple realizations of future conditions) or a distribution forecast (with mean and standard deviation), specified in the family and parameter columns of the forecast file. 
 
 For an ensemble forecast, the `family` column uses the word `ensemble` to designate that it is a ensemble forecast and the parameter column is the ensemble member number (1, 2, 3 …).  For a distribution forecast, the `family` column uses the word `normal` to designate a normal distribution and the parameter column must have the words mu and sigma for each forecasted variable, site_id, and datetime. For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution. I will go through examples of both `ensemble` and `normal` forecasts as examples. 
 
@@ -87,7 +87,7 @@ targets <- readr::read_csv("https://data.ecoforecast.org/neon4cast-targets/terre
   na.omit()
 ```
 
-Information on the NEON sites can be found in the `NEON_Field_Site_Metadata_20220412.csv` file on GitHub. It can be filtered to only include aquatic sites. This table has information about the field sites, including location, ecoregion, information vegetation type (`phenocam_vegetation`), canopy height, and soil type. 
+Information on the NEON sites can be found in the `NEON_Field_Site_Metadata_20220412.csv` file on GitHub. It can be filtered to only include terrestrial sites. This table has information about the field sites, including location, ecoregion, information vegetation type (`phenocam_vegetation`), canopy height, and soil type. 
  
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
 # read in the sites data
@@ -152,9 +152,9 @@ targets %>%
 
 We can think about what type of models might be useful to predict these variables at these sites. Below are descriptions of three simple models which have been constructed to get you started forecasting:
 
-* We could use information about recent conditions to predict the future. What is happening today is usually a good predictor of what will happen tomorrow (Model 2 - Persistence). 
-* We could also look at the variable's relationship(s) with other variables. Could we use existing forecasts about the weather to generate forecasts about terrestrial fluxes (Model 1 - Linear Model with Co-variates).
-* And we could think about what the historic data tells us about this time of year. Is this time of year likely to be similar the same period last year (Model 3 - Climatology/Seasonal Naive Model)
+* We could use information about recent conditions to predict the future. What is happening today is usually a good predictor of what will happen tomorrow 
+* We could also look at the variable's relationship(s) with other variables. Could we use existing forecasts about the weather to generate forecasts about terrestrial fluxes 
+* And we could think about what the historic data tells us about this time of year. Is this time of year likely to be similar the same period last year 
 
 # Introducing co-variates
 
@@ -171,10 +171,20 @@ You can read more about the NOAA forecasts available for the NEON sites [here:](
 ## Download co-variates
 ### Download historic data
 
-We will generate a `nee` forecast using `air_temperature` and `solar_radiation` as a co-variates. As an example of the workflow we will work with 1 site - DELA (Dead Lake deciduous forest).
+We will generate a `nee` forecast using `air_temperature` and `solar_radiation` as a co-variates. As an example of the workflow we will work with 1 site - HARV (Harvard deciduous forest).
+```{r}
+example_site <- 'HARV'
+
+targets |> 
+  filter(site_id  == example_site) |> 
+  ggplot(aes(x=datetime, y= observation)) +
+  geom_point()
+```
+
+
 
 ```{r, message=FALSE}
-example_site <- 'DELA'
+example_site <- 'HARV'
 
 # past stacked weather
 df_past <- neon4cast::noaa_stage3()
@@ -226,7 +236,11 @@ noaa_future_example <- df_future |>
   dplyr::filter(reference_datetime == noaa_date,
                 datetime >= forecast_date,
                 site_id %in% example_site,
-                variable %in% variables) |> 
+                variable %in% variables,
+                # Only need a 30 day horizon (31 *24 , today + 30 days)
+                horizon < 744,
+                # ensemble member 31 only goes to 16 days
+                parameter < 31) |> 
   dplyr::collect()
 noaa_future_example
 ```
@@ -251,21 +265,21 @@ Now we have a timeseries of historic data and a 30 member ensemble forecast of f
 
 ```{r echo = F, fig.cap = c('Figure: historic and future NOAA air temeprature forecasts for 1 NEON site', 'Figure: historic and future NOAA shortwave forecasts for 1 NEON site ')}
 noaa_future_daily_example |> 
-  filter(site_id == 'DELA') |> 
+  filter(site_id == 'HARV') |> 
   ggplot(aes(x=datetime, y=air_temperature)) +
   geom_line(aes(group = parameter), alpha = 0.4)+
-  geom_line(data = subset(noaa_past_mean_example, site_id == 'DELA'), colour = 'darkblue') +
+  geom_line(data = subset(noaa_past_mean_example, site_id == 'HARV'), colour = 'darkblue') +
   coord_cartesian(xlim = c(noaa_date - days(60),
-                           noaa_date + days(35)))+
+                           noaa_date + days(32)))+
   facet_wrap(~site_id, scales = 'free')
 
 noaa_future_daily_example |> 
-  filter(site_id == 'DELA') |> 
+  filter(site_id == 'HARV') |> 
   ggplot(aes(x=datetime, y=shortwave)) +
   geom_line(aes(group = parameter), alpha = 0.4)+
-  geom_line(data = subset(noaa_past_mean_example, site_id == 'DELA'), colour = 'darkblue') +
+  geom_line(data = subset(noaa_past_mean_example, site_id == 'HARV'), colour = 'darkblue') +
   coord_cartesian(xlim = c(noaa_date - days(60),
-                           noaa_date + days(35)))+
+                           noaa_date + days(32)))+
   facet_wrap(~site_id, scales = 'free')
 ```
 
@@ -285,9 +299,9 @@ tail(targets_lm_example)
 ```
 
 
-To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. You can explore the [documentation](https://otexts.com/fpp3/regression.html) for more information on the `fable::TSLM()` function. We can fit a separate linear model for each site. For example, at DELA Woodland (DELA), this would look like:
+To fit the linear model we use the base R `lm()` but there are also methods to fit linear (and non-linear) models in the `fable::` package. You can explore the [documentation](https://otexts.com/fpp3/regression.html) for more information on the `fable::TSLM()` function. We can fit a separate linear model for each site. For example, at HARV forest (HARV), this would look like:
 
-```{r, eval = F}
+```{r, eval = T}
 
 #Fit linear model based on past data: water temperature = m * air temperature + b
 fit <- lm(targets_lm_example$nee ~ targets_lm_example$air_temperature + targets_lm_example$shortwave)
@@ -299,6 +313,18 @@ forecasted_nee <- fit$coefficients[1] +
 
 ```
 
+```{r}
+  # put all the relevent information into a tibble that we can bind together
+  NEE <- tibble(datetime = noaa_future_daily_example$datetime,
+                        site_id = "HARV",
+                        parameter = noaa_future_daily_example$parameter,
+                        prediction = forecasted_nee,
+                        variable = "nee")
+  
+  ggplot(NEE, aes(x = datetime, y = prediction, group = parameter)) +
+    geom_line()
+```
+  
 We can loop through this workflow for each site to create a site-wise forecast of NEE based on a linear model and each forecasted air temperature and shortwave. We can run this forecast for each site and then bind them together to submit as one forecast. 
  
 1. Download historic NOAA data
@@ -307,7 +333,7 @@ We can loop through this workflow for each site to create a site-wise forecast o
 4. Forecast!
 5. Bind this all together...
 
-Note: This loop takes a few minutes to execute so start it running as soon as possible...
+Note: This loop takes a while to execute so start it running as soon as possible...
 ```{r}
 # Create the connections to data products
 df_past <- neon4cast::noaa_stage3()
@@ -353,7 +379,9 @@ for(i in 1:length(site_data$field_site_id)) {
     dplyr::filter(reference_datetime == noaa_date,
                   datetime >= forecast_date,
                   site_id %in% site,
-                  variable %in% variables) |> 
+                  variable %in% variables,
+                  horizon < 744,
+                  parameter < 31) |> 
     dplyr::collect()
   
   # generate a mean daily forecast to use in the forecast
@@ -387,7 +415,7 @@ for(i in 1:length(site_data$field_site_id)) {
     (fit$coefficients[2] * noaa_future_daily$air_temperature) + 
     (fit$coefficients[3] * noaa_future_daily$shortwave)
     
-  # put all the relavent information into a tibble that we can bind together
+  # put all the relevant information into a tibble that we can bind together
   NEE <- tibble(datetime = noaa_future_daily$datetime,
                         site_id = site,
                         parameter = noaa_future_daily$parameter,
@@ -413,9 +441,9 @@ Looking back at the forecasts we produced:
 
 ```{r, echo = F, warning = F}
 lm_forecast %>% 
-  filter(site_id %in% c('DELA', 'BARR')) |> 
+  filter(site_id %in% c('HARV', 'BARR')) |> 
   ggplot(aes(x=datetime, y=prediction, group = parameter)) + 
-  geom_point(data = subset(targets, site_id %in% c('DELA', 'BARR')),
+  geom_point(data = subset(targets, site_id %in% c('HARV', 'BARR')),
              aes(x=datetime, y=observation, group = 'obs'), colour = 'darkblue') +
   geom_line(alpha = 0.5, aes(colour = 'ensemble member (parameter)')) + 
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
@@ -449,7 +477,7 @@ For an ensemble forecast the documentation specifies the following columns:
 * `family`: name of probability distribution that is described by the parameter values in the parameter column; only `normal` or `ensemble` are currently allowed.
 * `parameter`: integer value for forecast replicate (from the `.rep` in fable output);
 * `variable`: standardized variable name from the theme 
-* `prediction`: forecasted value (from the `.sim` column in fable output)
+* `prediction`: forecasted value 
 * `model_id`: model name (no spaces)
 
 We need to make sure the dataframe is in the correct format and then we can submit this to the challenge as well! This is an ensemble forecast (specified in the `family` column). 
@@ -495,7 +523,7 @@ neon4cast::submit(forecast_file = forecast_file_1,
                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using maximum shortwave to predict NEE? Or including additional parameters? 
+Is the linear model a reasonable relationship between NEE and air temperature and solar radiation? Would some non-linear relationship be better? What about using maximum shortwave to predict NEE? Or including additional parameters? 
 
 ## TASKS
 Possible modifications to Model 1 - simple linear model: 
