@@ -363,12 +363,27 @@ model_fit <- NULL
 
 loop_sites <- 1:5 #1:length(site_data$field_site_id)
 
-for(i in loop_sites) {  
+## Stash NOAA locally:
+df_past |> 
+    dplyr::filter(datetime >= ymd('2017-01-01'),
+                  variable %in% variables) |> 
+    arrow::write_dataset("noaa_past", partitioning="site_id")
+    
+df_future |> 
+    dplyr::filter(reference_datetime == noaa_date,
+                  datetime >= forecast_date,
+                  variable %in% variables,
+                  horizon < 744,
+                  parameter < 31) |> 
+    arrow::write_dataset("noaa_future", partitioning="site_id")
+
+
+for(i in 1:length(site_data$field_site_id)) {  
   
   site <- site_data$field_site_id[i]
   
   # 1. Download historic NOAA data
-  noaa_past <- df_past |> 
+  noaa_past <- arrow::open_dataset("noaa_past") |> 
     dplyr::filter(site_id %in% site,
                   datetime >= ymd('2017-01-01'),
                   variable %in% variables) |> 
@@ -389,7 +404,7 @@ for(i in loop_sites) {
   
   #2. Download future NOAA data
   # Download the stage2 data
-  noaa_future <- df_future |> 
+  noaa_future <- arrow::open_dataset("noaa_future") |> 
     dplyr::filter(reference_datetime == noaa_date,
                   datetime >= forecast_date,
                   site_id %in% site,
