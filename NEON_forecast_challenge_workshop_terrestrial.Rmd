@@ -361,8 +361,9 @@ variables <- c("air_temperature", "surface_downwelling_shortwave_flux_in_air")
 lm_forecast <- NULL
 model_fit <- NULL
 
+loop_sites <- 1:5 #1:length(site_data$field_site_id)
 
-for(i in 1:length(site_data$field_site_id)) {  
+for(i in loop_sites) {  
   
   site <- site_data$field_site_id[i]
   
@@ -454,21 +455,22 @@ Looking back at the forecasts we produced:
 
 ```{r, echo = F, warning = F}
 lm_forecast %>% 
-  filter(site_id %in% c('HARV', 'BARR')) |> 
+  # filter(site_id %in% site_data$field_site_id[loop_sites]) |> 
   ggplot(aes(x=datetime, y=prediction, group = parameter)) + 
-  geom_point(data = subset(targets, site_id %in% c('HARV', 'BARR')),
+  geom_point(data = subset(targets, site_id %in% site_data$field_site_id[loop_sites]),
              aes(x=datetime, y=observation, group = 'obs'), colour = 'darkblue') +
   geom_line(alpha = 0.5, aes(colour = 'ensemble member (parameter)')) + 
   scale_x_date(expand = c(0,0), date_labels = "%d %b") +
   labs(y = 'value') +
-  facet_wrap(~site_id) +
+  facet_wrap(~site_id, scales = 'free') +
   geom_vline(aes(linetype = 'reference_datetime', xintercept = Sys.Date()), colour = 'blue', size = 1.5) +
   labs(title = 'site_id', subtitle = 'variable = nee', caption = 'prediction') + 
-  annotate("text", x = Sys.Date() - days(10), y = 20, label = "past")  +
-  annotate("text", x = Sys.Date() + days(12), y = 20, label = "future")  +
+  annotate("text", x = Sys.Date() - days(10), y = 2, label = "past")  +
+  annotate("text", x = Sys.Date() + days(12), y = 2, label = "future")  +
   theme_bw() +
   coord_cartesian(xlim = c(min(lm_forecast$datetime) - 60,
-                           Sys.Date() + 30)) +
+                           Sys.Date() + 30),
+                  ylim = c(-10,20)) +
   scale_linetype_manual(values = 'dashed', name = '') +
   scale_colour_manual(values = 'darkgrey', name = '') +
   theme(strip.text = element_text(colour = 'orange'),
@@ -497,7 +499,7 @@ We need to make sure the dataframe is in the correct format and then we can subm
 
 ```{r}
 # Remember to change the model_id when you make changes to the model structure!
-my_model_id <- 'nee_test'
+my_model_id <- 'test_model'
 
 lm_forecast_EFI <- lm_forecast %>%
   mutate(model_id = my_model_id,
