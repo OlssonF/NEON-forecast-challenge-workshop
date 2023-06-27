@@ -1,8 +1,12 @@
 ---
 title: "Analysing your forecasts"
 author: "Freya Olsson"
-date: "2023-04-19"
-output: html_document
+output:
+  md_document: 
+    variant: markdown_github
+    number_sections: true
+    toc: true
+date: "`r Sys.Date()`"
 ---
 
 ```{r setup, include=FALSE}
