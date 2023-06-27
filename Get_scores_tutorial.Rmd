@@ -9,9 +9,21 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Background on scores and skill
+
+From the first part of the tutorial we have gone through a simple forecast submission workflow. This submits your forecast to an AWS bucket which will automatically undergo 'scoring', comparing your prediction (and the associated uncertainty) with the observations collected by NEON to produce score metrics. These scores tell us how well each model was able to reproduce the observations, with lower scores indicating higher performance (and lower error). 
+
+One useful consideration when thinking about forecast performance is to compare this with established null models. The null models for each theme varies (see the documentation), but often includes the persistence model and/or the DOY mean (climatology). The submitted model forecast performance relative to these null models is termed the forecast skill and is useful for understanding when and where a forecast model provides utility above and beyond a simple null model.
+
+
+# This tutorial
+
+In this tutorial, we will go through some simple steps to access, visualise and analyse your (and others') forecasts and scores so that we can start to understand how forecast performance varies among models, sites, and variables. We can think about this across the whole Challenge or within a particular theme. We will start with just the `aquatics` theme to start with but the process will be similar for most of the Challenge themes. 
+
+
 ## Setting up the repository
 
-Start by unsetting any environmental variables relating the AWS buckets to ensure we can access the right ones with the forecast scores. We will also need the `tidyverse` and `arrow` packages, which can be installed here:
+We will start by setting up the work space and environment to be able to grab the files from the AWS buckets and having the relevant packages. First, we need to unset any environmental variables relating the AWS buckets to ensure we can access the right locations containing the forecast scores. We will also need the `tidyverse` and `arrow` packages, which can be installed here if you don't already have them.
 
 ```{r eval=F}
 # install required packages
@@ -21,7 +33,7 @@ install.packages('tidyverse')
 ```
 
 
-```{r echo = F}
+```{r echo = F, warning=F, error=FALSE, message=FALSE}
 Sys.unsetenv("AWS_ACCESS_KEY_ID")
 Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
 Sys.unsetenv("AWS_DEFAULT_REGION")
@@ -36,7 +48,7 @@ options(dplyr.summarise.inform = FALSE)
 
 ## Connect to the bucket
 
-The first step is to connect to the relevent bucket in the neon4cast server. This use the `s3_bucket` function from `arrow`. We will point to the aquatics scores bucket (the other themes have their scores in a seperate bucket). 
+The first step is to connect to the relevant bucket in the neon4cast server. This use the `s3_bucket` function from `arrow`. We will point to the aquatics scores bucket (the other themes have their scores in a separate bucket - for example to access the phenology scores you would go to `neon4cast-scores/parquet/phenology`). 
 
 ```{r}
 # connect to the scores bucket
@@ -44,24 +56,26 @@ s3 <- arrow::s3_bucket(bucket = "neon4cast-scores/parquet/aquatics", endpoint_ov
 
 ```
 
-The object generated (`s3`), in an active binding to that bucket. From this binding you can go in and subset the data files before bringing it into your local environment. Note: this is a similar process to what you do when you use the neon4cast::stage_2() and neon4cast::stage_3() functions to get the NOAA weather forecasts (see other tutorial information).
+The object generated (`s3`), in an active binding to that bucket. These data are organised in a parquet data base which can be queried via the binding we have created before bringing data into the local environment. Note: this is a similar process to what you do when you use the `neon4cast::stage_2()` and `neon4cast::stage_3()` functions to get the NOAA weather forecasts (see other tutorial information).
 
 
 ## Subsetting and collecting the scores
 
-You can explore what columns are in these files by using the `open_dataset` functions.
+The scores parquet database is organised by `model_id` -> `datetime`, but you can also subset based on the other variables that we included in the forecast such as `site_id`, `reference_datetime`, and `variable`. 
 
-```{r}
-s3 |> arrow::open_dataset()
-```
+Once you have decided what forecast score you want to investigate you can filter based on these columns. For example you might only want particular forecast models (`model_id`), or forecasts generated on a particular day (`reference_datetime`), or forecasts for a particular variable (`variable`), or a combination of these things. 
 
-Once you have decided what forecast score you want to investigate you can filter based on these columns. For example you might only want particular forecast models (`model_id`), or forecasts generated on a particular day (`reference_datetime`), or forecasts for a particular variable (`variable`), or a combination of these things. Make sure to note the column types when subsetting. For example `reference_datetime` is a string (or character) whereas datetime is a timestamp. 
+Tip: If you're not getting the data you want, make sure to note the column types when subsetting. For example `reference_datetime` is a string (or character) whereas `datetime` is a timestamp. 
 
 We will subset the score files by `model_id`, `site_id`, `variable`, and `reference_datetime`. 
 
 ```{r}
 #these are the filters you will put in
-get_models <- c('persistenceRW', 'climatology') # the name of your models/the models you are interested in
+get_models <- c('persistenceRW', 'climatology', 'fARIMA') # the name of your models/the models you are interested in
+
+# Tip: if you are only interested in getting forecasts from one model it is quicker to go directly to that part of the bucket using the s3_bucket function. For example to access the persistence forecasts we would go to:
+# s3 <- arrow::s3_bucket(bucket = "neon4cast-scores/parquet/aquatics/model_id=persistenceRW", endpoint_override= "data.ecoforecast.org")
+# This is only possible for the model_id filter!
 
 start_ref_date <- as_date('2023-03-13') # what period do you want the scores for?
 end_ref_date <- as_date('2023-04-13')
@@ -87,35 +101,70 @@ scores <- open_dataset(s3) |>
          site_id %in% get_sites,
          variable %in% get_variables) |> 
   collect() |> 
-# Note: this can be slow so be patient 
+
+  # Note: this can be slow so be patient 
   # The dataframe might also be very large depending on the filters you put in above
-  mutate(horizon = as_date(datetime) - as_date(reference_datetime))
+  mutate(horizon = as.numeric(as_date(datetime) - as_date(reference_datetime)))
 
 ```
 
+Tip: If you want to know what `datetime`s/`model_id`s/`site_id`s are avaialble you can use other `dplyr` functions to investigate the dataset. For example, to discover what `model_id`s are present on `2023-01-01` we can use `distinct`.
+
+```{r eval = F}
+ open_dataset(s3) |>
+  filter(reference_datetime == "2023-01-01") |> 
+  distinct(model_id) |> 
+  collect()
+```
+As these steps can be quite time consuming we can generate a local copy of this data frame to query more quickly using other functions from `arrow`. In these functions the `partitioning` refers to the variables which will be used to split the data up. It is recommended that the variables you will be using to subset and query the data on more frequently should be included in the partition, as it speeds up some of the querying process.
+
+```{r}
+scores |> 
+    arrow::write_dataset("scores", partitioning=c("model_id", "site_id"))
+```
+
+We can know query this again without having to access the AWS bucket. This would be done like this to get only forecasts at Barco Lake.
+Note: Remember the models and reference_datetimes represented in this dataset are what you selected above.
+
+```{r eval = F}
+arrow::open_dataset("scores") |> 
+  filter(site_id == 'BARC') |> 
+  collect()
+```
+
+We should first look at what columns this scores data frame includes. 
+
+```{r}
+scores |> 
+  glimpse()
+```
+
+Within the scores we have some id variables (`reference_datetime`, `datetime`, `family`, `variable`, `horizon`, `model_id`, `site_id`), some columns that include summary statistics of the submitted forecast (`mean`, `median`, `sd`, information on confidence intervals: `quantile97.5`,`quantile02.5`, `quantile90`,`quantile10`) and finally some columns that allow us to assess forecast performance against the NEON `observation`. These performance metrics are the `crps` and `logs`. You can read more about these two metrics in the [documentation](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html). The key things to know are that CRPS (Continuous Rank Probablity Score) is in native units (e.g. mg/L for dissolved oxygen) logs (Log score) is unitless and that for both the lower the value the better the forecast performance.  These metrics use the accuracy of the mean and the spread of the predictions. 
+
 ## Visualising and summarising forecast scores
 
-We will explore some ways you might want to investigate and visualise the performance of the forecasts. We currently have `r length(get_refdates)` individual `reference_datetimes`, over `r length(get_variable)` `variables`, `r length(get_sites)`  `site_id`s and `r length(get_models)` forecast `model_id`s. 
+We will explore some ways you might want to investigate and visualise the performance of the forecasts. We currently have `r length(get_refdates)` individual `reference_datetimes`, over `r length(get_variables)` `variables`, `r length(get_sites)`  `site_id`s and `r length(get_models)` forecast `model_id`s. 
 
 ### 1. Comparing an inidivudal forecast for multiple models
 
 We will try looking at temperature forecasts generated by our models for one forecast date at one site and look at how this compares with the observations. 
 
 ```{r warning=FALSE}
-scores |> 
-  filter(variable == 'temperature',
+filtered_scores <- scores |> 
+  filter(variable == get_variables[1],
          reference_datetime == get_refdates[1],
-         site_id == 'BARC') |> 
+         site_id == get_sites[1],
+         model_id %in% get_models[1:2]) 
+
+filtered_scores |> 
   ggplot(aes(x = datetime)) +
   geom_point(aes(y=observation, shape='observation')) +
   geom_ribbon(aes(ymax= quantile97.5,
                   ymin = quantile02.5,
-                  colour = model_id, 
-                  group = interaction(model_id,reference_datetime)),
+                  colour = model_id),
               alpha = 0.1) +
   geom_line(aes(y = mean, 
-                colour = model_id, 
-                group = interaction(model_id,reference_datetime))) +
+                colour = model_id)) +
   facet_wrap(~site_id, scales = 'free') +
   
   # Make it better to look at 
@@ -125,7 +174,24 @@ scores |>
   theme_bw()
 ```
 
-These are useful for visually looking at the forecast skill but to quantitatively access we can useful one of the scoring metrics. The NEON Challenge automatically scores the forecast using the CRPS (continuous rank probability score) and the logs (ignorance) scores. These use the accuracy of the mean and the spread of the predictions. You can read more about the scores [here](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html). This is also just one forecast and it might be interesting to look at more summarised output to see how models perform over multiple forecasts. 
+These initial plots are useful for visually looking at the forecast skill but to quantitatively access we can useful one of the scoring metrics (CRPS or logs). 
+
+```{r warning=FALSE}
+filtered_scores |> 
+  ggplot(aes(x = datetime)) +
+  geom_line(aes(y = crps, 
+                colour = model_id)) +
+  facet_wrap(~site_id, scales = 'free') +
+  
+  # Make it better to look at 
+  scale_colour_viridis_d(begin = 0.2, end = 0.8) +
+  scale_shape(name = '') +
+  labs(y= 'Water temperature (degree C)', x= 'Date') +
+  theme_bw()
+```
+
+Notice the gap in the scoring...this occurs because we have no observation at this date at this site so the forecast cannot be scored. 
+This is also just one forecast and it might be interesting to look at more summarised output to see how models perform over multiple forecasts. 
 
 ### 2. One day ahead forecasts over time
 
@@ -133,8 +199,11 @@ One summary we could look at is how a forecast of tomorrow performs across a par
 
 ```{r}
 scores |> 
-  filter(horizon == 1, 
-         variable == 'temperature') |> 
+  filter(horizon == 1,
+         
+         variable == get_variables[1],
+         site_id == get_sites[1],
+         model_id %in% get_models[1:2]) |> 
   na.omit(crps) |> 
   ggplot(aes(x=datetime, y=crps, colour = model_id)) +
   geom_line() +
@@ -143,20 +212,21 @@ scores |>
   
   # Make it better to look at 
   scale_colour_viridis_d(begin = 0.2, end = 0.8) +
-  labs(y= 'CRPS (degree C)', x= 'Datetime') +
+  labs(y= 'CRPS (degree C)', x= 'Datetime', title = 'Timeseries of 1 day ahead forecasts') +
   theme_bw()
 ```
 
-### 3. Forecast skill over horizon
+### 3. Forecast performance over horizon
 
-How do different model generally perform over forecast horizon? We can aggregate the forecasts to summarise the score based on how far into the future the forecast is for. For example, we could look at every 1 day ahead forecast vs every 7 day ahead forecast and see how this varies by site and variable.     
+How do different model generally perform over forecast horizon? We can aggregate the forecasts to summarise the score based on how far into the future the forecast is for. For example, we could look at every 1 day ahead forecast vs every 7 day ahead forecast and see how this varies by site.     
 
 ```{r}
 scores |> 
   na.omit(observation) |>  # only takes datetimes with observations
-  filter(variable %in% c('temperature', 'oxygen')) |> 
+  filter(variable %in% get_variables[1:2], 
+         model_id %in% get_models[1:2]) |> 
   group_by(horizon, variable, site_id, model_id) |> 
-  summarise(crps = mean(crps)) |> 
+  summarise(crps = median(crps)) |> 
   ggplot(aes(x = horizon, y = crps, colour = model_id)) +
   geom_line() +
   facet_grid(variable~site_id, scales = 'free') +
@@ -164,7 +234,7 @@ scores |>
   
    # Make it better to look at 
   scale_colour_viridis_d(begin = 0.2, end = 0.8) +
-  labs(y= 'CRPS (native units)', x= 'Horizon (days ahead)', caption = 'Shaded area is the 95 % CI') +
+  labs(y= 'CRPS', x= 'Horizon (days ahead)', title = 'Aggregated forecast skill over horizon') +
   theme_bw()
 ```
 
@@ -173,20 +243,61 @@ One thing to note is that the CRPS reports in native units (mg/L for DO and degr
 ```{r, echo = F}
 scores |> 
   na.omit(observation) |>  # only takes datetimes with observations
-  filter(variable %in% c('temperature', 'oxygen')) |> 
+  filter(variable %in% get_variables[1:2],
+         model_id %in% get_models[1:2]) |> 
   group_by(horizon, variable, site_id, model_id) |> 
   summarise(logs = mean(logs)) |> 
   ggplot(aes(x = horizon, y = logs, colour = model_id)) +
   geom_line() +
-  facet_grid(variable~site_id, scales = 'free')+
+  facet_grid(variable~site_id, scales = 'free') +
   
   
-  # Make it better to look at 
+   # Make it better to look at 
   scale_colour_viridis_d(begin = 0.2, end = 0.8) +
-  scale_shape(name = '') +
-  labs(y= 'Ignorance score', x= 'Horizon (days ahead)', caption = 'Shaded area is the 95 % CI') +
+  labs(y= 'CRPS', x= 'Horizon (days ahead)', title = 'Aggregated forecast performance over horizon') +
   theme_bw()
 ```
 
-Also these summary plots work better when there are multiple at each horizon (ie. if you have, for example, a year of forecasts). The N value on a lot of these means is small. 
+Also these summary plots work better when there are multiple forecasts at each horizon (ie. if you have, for example, a year of forecasts). The N value on a lot of these means is small. 
 
+
+### 4. Forecast skill
+
+As noted above forecast skill relates the forecast performance of a model of interest to a null model. We can look at a simple ARIMA model to see how it compares to one of our null models (persistence) to give a metric of 'skill'. We can calculate the difference between our null model and model of interest to estimate 'skill'. There are a few ways to do this but for simplicity we will just look at the difference in metric scores (null - model), meaning positive value indicate a skillful forecast (CRPS_null > CRPS_model)
+
+```{r}
+scores |> 
+  filter(model_id %in% c('persistenceRW', 'fARIMA'), 
+         variable == 'temperature',
+         site_id == 'BARC') |> 
+  
+  select(reference_datetime, site_id, datetime, variable, crps, model_id, horizon) |> 
+  
+  pivot_wider(values_from = crps, 
+              names_from = model_id) |> 
+  mutate(relative_skill = persistenceRW-fARIMA) |> 
+  
+  group_by(horizon, variable, site_id) |> 
+  summarise(relative_skill = median(relative_skill, na.rm = T)) |> 
+  
+  ggplot(aes(x = horizon, y = relative_skill)) +
+  geom_line() +
+  facet_grid(variable~site_id, scales = 'free') +
+  
+  
+   # Make it better to look at 
+  scale_colour_viridis_d(begin = 0.2, end = 0.8) +
+  labs(y= 'CRPS', x= 'Horizon (days ahead)', title = 'Aggregated forecast skill over horizon') +
+  theme_bw() +
+  
+  
+  # compare with the null
+  geom_hline(yintercept = 0) +
+  annotate(geom = 'text', x = 30, y =  0.1, label = 'better than null')+
+  annotate(geom = 'text', x = 30, y =  -0.1, label = 'worse than null')
+```
+
+
+## Next steps 
+- You can use this code to look at how well different models are doing compared to a model of interest? 
+- Are there particular sites that generally have better/worse predictions?    
