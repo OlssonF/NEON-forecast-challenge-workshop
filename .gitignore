@@ -4,5 +4,7 @@
 .Ruserdata
 
 *.csv
-/scores
-/forecasts
+scores/
+forecasts/
+noaa_past/
+noaa_future/
