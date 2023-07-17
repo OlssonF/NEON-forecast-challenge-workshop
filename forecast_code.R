@@ -135,5 +135,5 @@ if (!dir.exists('Forecasts')) {
 
 write_csv(temp_lm_forecast_EFI, file.path('Forecasts',forecast_file_1))
 
-neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_1),
-                  ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
+# neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_1),
+#                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
