@@ -369,7 +369,7 @@ We need to make sure the dataframe is in the correct format and then we can subm
 
 ```{r}
 # Remember to change the model_id when you make changes to the model structure!
-my_model_id <- 'GLEON_temp_name'
+my_model_id <- 'example_ID'
 
 temp_lm_forecast_EFI <- temp_lm_forecast %>%
   mutate(model_id = my_model_id,
@@ -396,15 +396,20 @@ forecast_name_1 <- paste0(temp_lm_forecast_EFI$model_id[1], ".csv")
 forecast_file_1 <- paste(theme, date, forecast_name_1, sep = '-')
 forecast_file_1
 
-write_csv(temp_lm_forecast_EFI, forecast_file_1)
 
-neon4cast::forecast_output_validator(forecast_file_1)
+if (!dir.exists('Forecasts')) {
+  dir.create('Forecasts')
+}
+
+write_csv(temp_lm_forecast_EFI, file.path('Forecasts',forecast_file_1))
+
+neon4cast::forecast_output_validator(file.path('Forecasts',forecast_file_1))
 
 ```
 
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
-neon4cast::submit(forecast_file = forecast_file_1,
+neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_1),
                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
@@ -436,9 +441,13 @@ It's really important that once you start submitting forecasts to the Challenge 
 
 Questions about Challenge registration and synthesis participation can be directed to [Freya Olsson](mailto:freyao@vt.edu). 
 
-# Model 2:  Persistence
 
-This next forecast will use a method from the `fable` R package which is installed via `fpp3` package. The `fable` package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
+
+
+# Alternative forecasting approaches
+## Model 2:  Persistence
+
+This forecasting method uses a method from the `fable` R package which is installed via `fpp3` package. The `fable` package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
 `fable` and `fabletools`, are installed as part of the `fpp3` package and produce and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the `tidyverse` to manipulate and visualise the target data and forecasts. 
 
 ```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
@@ -463,8 +472,8 @@ The model would be specified and then the forecast generated as follows (using `
 
 To specify the model we use `model(RW = RW(observation))` and then the forecast can be created by piping this model to the `generate()` function. `h = 30` tells the model how far in the future to forecast, and `bootstrap = TRUE` tells the function to generate multiple uncertainty through bootstrapping. Bootstrapping is where we run the forecast multiple times with a random error term drawn from the residuals of the fitted model. Doing this repeatedly, we obtain many possible futures (an ensemble forecast). We decide how many of these possibilities to simulate with the `times =...` argument.
 
-Note: Running the next chunk will return an error. This is because there was no observation yesterday.
-```{r, eval = F}
+
+```{r, eval = T}
 targets_subset <- targets %>%
   filter(site_id == 'SUGG') 
 
@@ -668,7 +677,7 @@ RW_forecast %>%
 
 Each line on the plot is one of the ensemble members (shown in the fable as `.rep`). You can also see that not all the "forecasted" days are true forecasts (some are in the past), but we started the forecast at the last observation. Therefore, when we write out the forecast and submit it we need to make sure to only submit the true forecast (of the future). 
 
-## Convert to EFI standard for submission
+### Convert to EFI standard for submission
 For an ensemble forecast the documentation specifies the following columns:
 
 * `datetime`: forecast timestamp for each time step
@@ -738,7 +747,7 @@ Now we have a forecast that can be submitted to the EFI challenge.
 head(RW_forecasts_EFI) 
 ```
 
-## Write the forecast to file
+### Write the forecast to file
 ```{r eval = T}
 # Start by writing the forecast to file
 theme <- 'aquatics'
@@ -746,10 +755,14 @@ date <- RW_forecasts_EFI$reference_datetime[1]
 forecast_name_2 <- paste0(RW_forecasts_EFI$model_id[1], ".csv")
 forecast_file_2 <- paste(theme, date, forecast_name_2, sep = '-')
 
-write_csv(RW_forecasts_EFI, forecast_file_2)
+if (!dir.exists('Forecasts')) {
+  dir.create('Forecasts')
+}
+
+write_csv(RW_forecasts_EFI, file.path('Forecasts', forecast_file_2))
 
 ```
-## Submit forecast 
+### Submit forecast 
 Files need to be in the correct format for submission. The forecast organizers have created tools to help aid in the submission process. These tools can be downloaded from Github using `remotes::install_github(eco4cast/neon4cast)`.
 These include functions for submitting, scoring and reading forecasts:
 
@@ -759,27 +772,27 @@ These include functions for submitting, scoring and reading forecasts:
 
 
 ```{r}
-neon4cast::forecast_output_validator(forecast_file_2)
+neon4cast::forecast_output_validator(file.path('Forecasts', forecast_file_2))
 ```
 
 This has checked that the file has a valid name and format that can be submitted. 
 
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
-neon4cast::submit(forecast_file = forecast_file_2,
+neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_2),
                   ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-## TASKS
+### TASKS
 Possible modifications to the persistence RW model:
 
 * How does the number of ensembles change the uncertainty?
 * Are the transformations reasonable? Have a look [here](https://otexts.com/fpp3/ftransformations.html) about applying other types of transformations in Fable
-* Do you expect there to be a long term trends in that is not captured? Try adding a drift() term to the model
+* Do you expect there to be a long term trends in that is not captured? Try adding a `drift()` term to the model
 
 
 
-# Model 3: Climatology model
+## Model 3: Climatology model
 
 An alternative approach is to look at the historic data to make predictions about the future. The seasonal naive model in `fable` sets each forecast to be equal to the last observed value, given the specified lag. When we specify the lag to by 1 year, it will provide a forecast that is the observations from the same day the previous year, also known as a climatology model. 
 Again we need to tidy the data to the correct format for `fable`. We make sure there are explicit gaps (using `fill_gaps()`) and make it into a tsibble object with `variable` and `site_id` as the keys and `datetime` as the index. 
@@ -867,7 +880,7 @@ SN_forecast_EFI %>%
 ```
 You can see that there are gaps in the forecasts. This is where there was no observation for that day in the previous year. Ways we might fill these gaps in the forecast include interpolating the values, or taking a day-of-year mean for all years data. 
 
-## Write the forecast for NEON EFI challenge
+### Write the forecast for NEON EFI challenge
 ```{r eval = T}
 # Start by writing the forecast to file
 # Start by writing the forecast to file
@@ -876,10 +889,10 @@ date <- RW_forecasts_EFI$reference_datetime[1]
 forecast_name_3 <- paste0(SN_forecast_EFI$model_id[1], ".csv")
 forecast_file_3 <- paste(theme, date, forecast_name_3, sep = '-')
 
-write_csv(SN_forecast_EFI, forecast_file_3)
+write_csv(SN_forecast_EFI, file.path('Forecasts', forecast_file_3))
 
 ```
-## Submit forecast 
+### Submit forecast 
 Files need to be in the correct format with metadata for submission. The forecast organisers have created tools to help aid in the submission process. These tools can be downloaded from Github using `remotes::install_github(eco4cast/neon4cast)`.
 These include functions for submitting, scoring and reading forecasts:
 
@@ -889,15 +902,15 @@ These include functions for submitting, scoring and reading forecasts:
 
 ```{r eval = FALSE}
 # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
-neon4cast::submit(forecast_file = forecast_file_3,
+neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_3),
                   ask = F) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-## TASKS
+### TASKS
 Possible modifications to Model 3 - Seasonal Naive Model:
 
 * Fill gaps in forecasts - how could we modify the targets/forecast to get a continuous forecast for all sites
-* Explore Seasonal Naive and other simple models in [fable](https://otexts.com/fpp3/simple-methods.html), try adding a drift parameter (a long-term warming trend for example)
+* Explore Seasonal Naive and other simple models in [fable](https://otexts.com/fpp3/simple-methods.html), try adding a `drift` parameter (a long-term warming trend for example)
 * Can we change the lag in the model?
 * Another type of climatology model could include data from all years of historic data (easier to implement outside fable)
 
@@ -908,10 +921,10 @@ Possible modifications to Model 3 - Seasonal Naive Model:
 ## How the forecasts are scored?
 The Challenge implements methods from the scoringRules R package to calculate the Continuous Rank Probability Score (CRPS) via the `score4cast` package. This scores the optimum is the minimum value, so we are aiming for as small a value as possible. CRPS uses information about the variance of the forecasts as well as the estimated mean to calculate the score by comparing it with the observation. There is some balance between accuracy and precision. The forecasts will also be compared with 'null' models (RW and climatology) More info can be found in the [documentation](https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html) or the `score4cast` package from EFI organizers [here](https://github.com/eco4cast/score4cast). 
 
-You can view past submissions [here:](https://projects.ecoforecast.org/neon4cast-dashboard/aquatics.html). You can also the raw scores from the bucket directly. Have a look at the get_scores.R file.
+You can view past submissions [here:](https://projects.ecoforecast.org/neon4cast-dashboard/aquatics.html). You can also the raw scores from the bucket directly. Have a look at tutorial in Analyse_scores/get_scores_tutorial.Rmd.
 
 ## Other useful R packages
-Check out the NEON4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
+Check out the neon4cast R package ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html), and [github](https://github.com/eco4cast/neon4cast)) for other helpful functions when developing your workflow for the submitting to the challenge. 
 
 EFI has also produced a package that summarizes the proposed community standards for the common formatting and archiving of ecological forecasts. Such open standards are intended to promote interoperability and facilitate forecast adoption, distribution, validation, and synthesis ([introduction](https://projects.ecoforecast.org/neon4cast-docs/Helpful-Functions.html#efistandards-package) and [github](https://github.com/eco4cast/EFIstandards))
 
@@ -930,7 +943,9 @@ df_past %>%
 The examples shown here, submit the forecast as a _csv_ file but you can also submit your forecasts in _NetCDF_ format. See information [here](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html#step-1-forecast-file-format) about the different file formats.
 
 ## Automating your forecasting workflow
-Automation is a key step to producing forecasts once you have your model up and running and are happy with your forecasts. By automating your forecasting workflow, reduces the "work" needed to produce the forecasts. There are many ways to automate scripts that are written to download observations and meteorology drivers, generate forecasts, and submit forecasts. Two tools that many have used are cron jobs (see the R package cronR) that execute tasks at user specifics times and github actions. There are examples of how you might go about implementing this in the [example github repository](https://github.com/eco4cast/neon4cast-example), using github actions and binder. 
+Automation is a key step to producing forecasts once you have your model up and running and are happy with your forecasts. By automating your forecasting workflow, reduces the "work" needed to produce the forecasts. There are many ways to automate scripts that are written to download observations and meteorology drivers, generate forecasts, and submit forecasts. Two tools that many have used are: cron jobs (see the R package `cronR`) that execute tasks at user specifics times and Github actions. There are examples of how you might go about implementing this in the [example github repository](https://github.com/eco4cast/neon4cast-example), using github actions and binder. 
+
+Take a look at the Automate_forecast/automation_tutorial.md
 
 ## Alternative methods to loop through each variable-site_id combination
 Using the `purrr` package we can also loop through each combination of site_id and variable combination. 
