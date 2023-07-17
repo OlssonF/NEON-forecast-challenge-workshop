@@ -96,3 +96,6 @@ In Github go to your repository and navigate to the ACTIONS tab and make sure th
 * Test the workflow runs by using the Run workflow button > Run workflow
 * Your job has been requested and will initiate soon 
 * The progress of the job can be checked by clicking on it (Yellow running, Green completed, Red failed)
+* You can view the output of the job including what is produced in the console by clicking on the relevent sections of the job
+
+You now have a fully automated forecast workflow!
