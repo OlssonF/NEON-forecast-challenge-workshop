@@ -4,6 +4,8 @@ install.packages('tsibble') # package for dealing with time series data sets and
 library(tidyverse)
 library(lubridate)
 
+source('R/ignore_sigpipe.R')
+
 #read in the targets data
 targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aquatics-targets.csv.gz')
 
@@ -137,3 +139,4 @@ write_csv(temp_lm_forecast_EFI, file.path('Forecasts',forecast_file_1))
 
 # neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_1),
 #                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
+
