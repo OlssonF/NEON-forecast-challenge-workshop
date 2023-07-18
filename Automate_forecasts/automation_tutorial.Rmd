@@ -83,7 +83,7 @@ parent_dir <- here::here()
 dir.create(file.path(parent_dir,'.github/workflows'), recursive = T)
 
 # 2. Create yaml file
-# copy chunk above into new R script
+# Copy chunk above into new text file (make sure the indentation is the same) and save into the .github/workflows directory
 
 # 3. Commit changes and push to Github
 ```
