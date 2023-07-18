@@ -451,9 +451,8 @@ This forecasting method uses a method from the `fable` R package which is instal
 `fable` and `fabletools`, are installed as part of the `fpp3` package and produce and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the `tidyverse` to manipulate and visualise the target data and forecasts. 
 
 ```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
-# install.packages('fpp3')
-# install.packages('tsibble')
-# install via remotes::install_github('eco4cast/neon4cast')
+install.packages('fpp3') # package for applying simple forecasting methods
+install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
 
 library(fpp3)      # package for forecasting
 library(tsibble)   # package for dealing with time series data sets
