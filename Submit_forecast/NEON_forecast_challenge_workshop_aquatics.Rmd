@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # This R markdown document
-This document present workshop materials initially presented in the Forecast Challenge part of the GLEON2022 workshop "Introduction to real-time lake forecasting: learn, teach, and generate forecasts with Macrosystems EDDIE modules and the NEON Forecasting Challenge." The materials have been modified slightly for use in additional workshops.
+This document presents workshop materials to get you started on generating forecasts specifically for submission to the EFI-NEON Forecasting Challenge. The Challenge goal is to create a community of practice that builds capacity for ecological forecasting by leveraging NEON data products. The Challenge revolves around the five theme areas that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions that uses data collected by NEON. Learn more about the Challenge [here](https://projects.ecoforecast.org/neon4cast-docs/)!
 
 To complete the workshop via this markdown document the following packages will need to be installed:
 
@@ -152,10 +152,10 @@ targets <- targets %>%
 One important step to overcome when thinking about generating forecasts is to include co-variates in the model. A water temperature forecast, for example, may be benefit from information about past and future weather. The neon4cast challenge package includes functions for downloading past and future NOAA weather forecasts for all of the NEON sites. The 3 types of data are as follows:
 
 * stage_1: raw forecasts - 31 member ensemble forecasts at 3 hr intervals for the first 10 days, and 6 hr intervals for up to 35 days at the NEON sites.
-* stage_2: a processed version of Stage 1 in which fluxes are standardized to per second rates, fluxes and states are interpolated to 1 hour intervals and variables are renamed to match conventions. We recommend this for obtaining future weather by using `neon4cast::noaa_stage2()`. Future weather forecasts include a 30-member ensemble of equally likely future weather conditions.
-* stage_3: can be viewed as the "historical" weather and is combination of day 1 weather forecasts (i.e., when the forecasts are most accurate). You can download this “stacked” NOAA product using `neon4cast::noaa_stage3()`.
+* stage_2: a processed version of Stage 1 in which fluxes are standardized to per second rates, fluxes and states are interpolated to 1 hour intervals and variables are renamed to match conventions. We recommend this for obtaining future weather. Future weather forecasts include a 30-member ensemble of equally likely future weather conditions.
+* stage_3: can be viewed as the "historical" weather and is combination of day 1 weather forecasts (i.e., when the forecasts are most accurate). 
 
-These functions create a connection to the dataset hosted on the eco4cast server. To download the data you have to tell the function to `collect()` it. These data set can be subsetted and filtered using `dplyr` functions prior to download to limit the memory usage.
+This code create a connection to the dataset hosted on the eco4cast server (`neon4cast-drivers/noaa/gefs-v12`) using `arrow` functions. To download the data you have to tell the function to `collect()` it. These data set can be subsetted and filtered using `dplyr` functions prior to download to limit the memory usage.
 
 You can read more about the NOAA forecasts available for the NEON sites [here:](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html)
 
@@ -167,12 +167,13 @@ Note: This code chunk can take a few minutes to execute as it accesses the NOAA 
 
 ```{r, message=FALSE}
 # past stacked weather
-df_past <- neon4cast::noaa_stage3()
+bucket <- "neon4cast-drivers/noaa/gefs-v12/stage3/parquet/"
+s3_past <- arrow::s3_bucket(bucket, endpoint_override = "data.ecoforecast.org", anonymous = TRUE)
 
 variables <- c("air_temperature")
 #Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-3
 
-noaa_past <- df_past |> 
+noaa_past <- arrow::open_dataset(s3_past)  |> 
   dplyr::filter(site_id %in% lake_sites$field_site_id,
                 datetime >= ymd('2017-01-01'),
                 variable %in% variables) |> 
@@ -204,16 +205,18 @@ We can then look at the future weather forecasts in the same way but using the `
 forecast_date <- Sys.Date() 
 noaa_date <- forecast_date - days(1)
 
-df_future <- neon4cast::noaa_stage2()
+
+bucket <- paste0("neon4cast-drivers/noaa/gefs-v12/stage2/parquet/0/", noaa_date) 
+s3_future <- arrow::s3_bucket(bucket = bucket, endpoint_override = 'data.ecoforecast.org', anonymous = TRUE)
 
 variables <- c("air_temperature")
 
-noaa_future <- df_future |> 
-  dplyr::filter(reference_datetime == noaa_date,
-                datetime >= forecast_date,
+noaa_future <- arrow::open_dataset(s3_future) |> 
+  dplyr::filter(datetime >= forecast_date,
                 site_id %in% lake_sites$field_site_id,
                 variable %in% variables) |> 
-  dplyr::collect()
+  collect()
+
 ```
 
 The forecasts are hourly and we are interested in using daily mean air temperature for water temperature forecast generation.
