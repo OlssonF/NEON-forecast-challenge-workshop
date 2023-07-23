@@ -67,7 +67,7 @@ jobs:
         run: Rscript forecast_code.R 
 ```
 
-Once all the instructions/steps are run the container will close. When a container closes all data created (like the forecast_file.csv) will be lost. If you need to retrieve anything from an automated Github Action it needs to be pushed back to Github or to a remote location (e.g. cloud storage). 
+Once all the instructions/steps are run the container will close. When a container closes all data created (like the "aquatics-2023-07-22-example_ID.csv" file) will be lost. If you need to retrieve anything from an automated Github Action it needs to be pushed back to Github or to a remote location (e.g. cloud storage). 
 
 This workflow file should be saved into a sub-directory called `.github/workflows` in the parent directory. 
 

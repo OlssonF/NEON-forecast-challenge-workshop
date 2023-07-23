@@ -167,13 +167,12 @@ Note: This code chunk can take a few minutes to execute as it accesses the NOAA 
 
 ```{r, message=FALSE}
 # past stacked weather
-bucket <- "neon4cast-drivers/noaa/gefs-v12/stage3/parquet/"
-s3_past <- arrow::s3_bucket(bucket, endpoint_override = "data.ecoforecast.org", anonymous = TRUE)
+noaa_past_s3 <- neon4cast::noaa_stage3()
 
 variables <- c("air_temperature")
 #Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-3
 
-noaa_past <- arrow::open_dataset(s3_past)  |> 
+noaa_past <- noaa_past_s3  |> 
   dplyr::filter(site_id %in% lake_sites$field_site_id,
                 datetime >= ymd('2017-01-01'),
                 variable %in% variables) |> 
@@ -205,13 +204,10 @@ We can then look at the future weather forecasts in the same way but using the `
 forecast_date <- Sys.Date() 
 noaa_date <- forecast_date - days(1)
 
-
-bucket <- paste0("neon4cast-drivers/noaa/gefs-v12/stage2/parquet/0/", noaa_date) 
-s3_future <- arrow::s3_bucket(bucket = bucket, endpoint_override = 'data.ecoforecast.org', anonymous = TRUE)
-
+noaa_future_s3 <- neon4cast::noaa_stage2(start_date = as.character(noaa_date))
 variables <- c("air_temperature")
 
-noaa_future <- arrow::open_dataset(s3_future) |> 
+noaa_future <- noaa_future_s3 |> 
   dplyr::filter(datetime >= forecast_date,
                 site_id %in% lake_sites$field_site_id,
                 variable %in% variables) |> 
@@ -379,7 +375,7 @@ temp_lm_forecast_EFI <- temp_lm_forecast %>%
          reference_datetime = as_date(min(datetime)) - days(1),
          family = 'ensemble',
          parameter = as.character(parameter)) %>%
-  select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction)
+  select(datetime, reference_datetime, site_id, family, parameter, variable, prediction, model_id)
 ```
 
 ## Submit forecast
@@ -440,7 +436,7 @@ Remember to change the `model_id` so we can differentiate different forecasts!
 It's really important that once you start submitting forecasts to the Challenge that you register your participation. We ask that you complete this [form](https://nd.qualtrics.com/jfe/form/SV_9MJ29y2xNrBOjqZ) which asks you some simple questions about your forecast and team. This is crucial for a couple of reasons:
 
 1. We can keep track different forecast submissions during the scoring process to see which forecast is performing the best. Your `model_id` will be used to track the submissions so any new forecast model requires a new `model_id`.
-2. The form gives consent for submissions to be included in Challenge-wide syntheses being carried out by the Challenge organisers. Partipants in the Challenge will be invited to join the synthesis projects on an opt-in basis. 
+2. The form gives consent for submissions to be included in Challenge-wide syntheses being carried out by the Challenge organisers. Long-term partipants in the Challenge will be invited to join the synthesis projects on an opt-in basis. 
 
 Questions about Challenge registration and synthesis participation can be directed to [Freya Olsson](mailto:freyao@vt.edu). 
 
