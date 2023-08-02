@@ -7,7 +7,7 @@ The materials are split into three sections:
 * `Automate_forecasts` - you've made a model and submitted a forecast successfully? Automate your workflow to submit a new forecacst every day 
 * `Analyse_scores` - interested in knowing how different forecasts are performing within the Challenge? This is a brief introduction in how to access the scored forecasts and do some simple analyses. 
 
-As part of _Hacking Limnology 2023_ we will aim to complete the first two of these tutorials during the workshop. Below are some pre-workshop instructions to make sure you are ready to go!
+Below are some pre-workshop instructions to make sure you are ready to go!
 
 __Any questions, email [freyao@vt.edu](mailto:freyao@vt.edu) before the workshop!__
 
