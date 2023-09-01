@@ -1,5 +1,7 @@
 # NEON Forecast Challenge Workshop Pre-Workshop Instructions
-This is a repository for the NEON Forecasting Challenge workshop materials (updated for Hacking Limnology 2023). This workshop repository is a dynamic repository and may change in future iterations. 
+This is a repository for materials to complete the NEON Ecological Forecasting Challenge workshop. The main branch focuses on forecasts for the aquatics theme forecast production. Select a different branch of the repository to complete the workshop for other theme forecasts. 
+
+This workshop repository is a dynamic repository and may change in future iterations. 
 
 The materials are split into three sections:
 
