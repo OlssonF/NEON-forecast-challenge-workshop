@@ -131,7 +131,7 @@ We can know query this again without having to access the AWS bucket. This would
 Note: Remember the models and reference_datetimes represented in this dataset are what you selected above.
 
 ```{r eval = F}
-arrow::open_dataset("scores") |> 
+scores <- arrow::open_dataset("../scores") |> 
   filter(site_id == 'BARC') |> 
   collect()
 ```
@@ -258,7 +258,7 @@ scores |>
   
    # Make it better to look at 
   scale_colour_viridis_d(begin = 0.2, end = 0.8) +
-  labs(y= 'CRPS', x= 'Horizon (days ahead)', title = 'Aggregated forecast performance over horizon') +
+  labs(x= 'Horizon (days ahead)', title = 'Aggregated forecast performance over horizon') +
   theme_bw()
 ```
 
