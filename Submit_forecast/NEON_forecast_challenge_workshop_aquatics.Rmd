@@ -16,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # This R markdown document
 This document presents workshop materials to get you started on generating forecasts specifically for submission to the EFI-NEON Forecasting Challenge. The Challenge goal is to create a community of practice that builds capacity for ecological forecasting by leveraging NEON data products. The Challenge revolves around the five theme areas that span aquatic and terrestrial systems, and population, community, and ecosystem processes across a broad range of ecoregions that uses data collected by NEON. Learn more about the Challenge [here](https://projects.ecoforecast.org/neon4cast-docs/)!
 
+The development of these materials has been supported by NSF grants DEB-1926388 and DBI-1933016. 
+
 To complete the workshop via this markdown document the following packages will need to be installed:
 
 * `remotes`
