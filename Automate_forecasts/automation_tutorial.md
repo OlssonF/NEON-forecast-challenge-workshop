@@ -4,11 +4,21 @@
 -   <a href="#the-platform---github-actions"
     id="toc-the-platform---github-actions">3 The platform - Github
     Actions</a>
+-   <a href="#lets-try-and-put-this-together"
+    id="toc-lets-try-and-put-this-together">4 Let’s try and put this
+    together</a>
+    -   <a href="#writing-your-forecast-script"
+        id="toc-writing-your-forecast-script">4.1 Writing your forecast
+        script</a>
+    -   <a href="#writing-a-yaml" id="toc-writing-a-yaml">4.2 Writing a yaml</a>
+    -   <a href="#enable-actions" id="toc-enable-actions">4.3 Enable Actions</a>
+    -   <a href="#test-the-action" id="toc-test-the-action">4.4 Test the
+        Action</a>
 
 # 1 Introduction
 
 Workflow automation is key to making a forecast that is run every day,
-takes in new observations, updates parameters and intiial conditions and
+takes in new observations, updates parameters and initial conditions and
 produces a new forecast. And the automation means all of this is done
 without you needing to click a button every day.
 
@@ -17,7 +27,7 @@ without you needing to click a button every day.
 To automate your forecast, the workflow needs to be fully reproducible.
 The environment/set up, packages, file paths need to be set up in a way
 that can be reproduced every day in the same way. As part of this
-reprodcibility we will use a Docker container:
+reproducibility we will use a Docker container:
 
 > A container is a standard unit of software that packages up code and
 > all its dependencies so the application runs quickly and reliably from
@@ -38,14 +48,17 @@ we will be using the Github Actions tools. Actions allow you to run a
 workflow based on a trigger, which in our case will be a time (but could
 be when you push or pull to a directory). Read more about [Github
 Actions](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
-To start off with Github actions you need a worflow yaml file. Yaml
-files are computer readable ‘instructions’ that essentially say what the
-Action needs to do. Every time an action is triggered to start it will
-open a Linux machine environment and from this we can give it a series
-of instructions to get to our forecast submission. Below is an example
-of what your yaml file might look like to run an automated forecast.
 
-A basic description of a Github action
+To start off with Github actions you need a workflow yaml file. Yaml
+files are computer readable ‘instructions’ that essentially say what the
+Action needs to do.
+
+Every time an action is triggered to start it will open a Linux machine
+environment and from this we can give it a series of instructions to get
+to our forecast submission. Below is an example of what your yaml file
+might look like to run an automated forecast.
+
+A basic description of a Github action:
 
 > You can configure a GitHub Actions *workflow* to be triggered when an
 > event occurs in your repository, such as a pull request being opened
@@ -60,13 +73,21 @@ A basic description of a Github action
     schedule based on timing codes found in <https://crontab.guru>.
 -   `jobs` this is what you are telling the machine to do. You can see
     that within the job we have other instructions that tell the machine
-    what `container` to use and the various `steps` in the job.
-    -   The first is to `checkout repo` which uses a premade action
+    what `container` to use and the various `steps` in the job. We use a
+    container `image` from eco4cast that has the neon4cast package plus
+    others installed (`eco4cast/rocker-neon4cast`).
+    -   The first is to `checkout repo` which uses a pre-made action
         `checkout` to get a copy of the Github repo.
     -   Next, within the container, we run the R script
         `run_forecast.R` - this is your forecast code that generates a
         forecast file and has code to submit the saved forecast to the
         Challenge.
+
+Note: (An example forecast script is included in the repository but you
+can modify this with the code you develop during the workshop)
+
+Note: the indentation matters, make sure the indentation is as formatted
+here!
 
 Because of the workflow_dispatch this will run everyday, submitting your
 forecast to the Challenge. As long as your run_forecast.R has all the
@@ -89,13 +110,61 @@ code in to do this!
               fetch-depth: 0
               
           - name: Run automatic prediction file
-            run: Rscript run_forecasts.R 
+            run: Rscript forecast_code.R 
 
 Once all the instructions/steps are run the container will close. When a
-container closes all data created (like the forecast_file.csv) will be
-lost. If you need to retrieve anything from an automated Github Action
-it needs to be pushed back to Github or to a remote location (e.g. cloud
-storage).
+container closes all data created (like the
+“aquatics-2023-07-22-example_ID.csv” file) will be lost. If you need to
+retrieve anything from an automated Github Action it needs to be pushed
+back to Github or to a remote location (e.g. cloud storage).
 
 This workflow file should be saved into a sub-directory called
 `.github/workflows` in the parent directory.
+
+# 4 Let’s try and put this together
+
+## 4.1 Writing your forecast script
+
+First we need a script that the action will run on. In the YAML above
+the action will run the command `Rscript forecast_code.R`. Create a file
+in the top directory of you repository called `forecast_code.R` that
+contains all the information needed to generate your forecast and submit
+it to the Challenge (read targets, fit model, generate forecast, submit
+etc.).
+
+## 4.2 Writing a yaml
+
+Next we need a YAML file that will be run by the Github action:
+
+``` r
+# 1. Make directory
+parent_dir <- here::here()
+dir.create(file.path(parent_dir,'.github/workflows'), recursive = T)
+
+# 2. Create yaml file
+# Copy chunk above into new text file (make sure the indentation is the same) and save into the .github/workflows directory with the yaml extension
+# run.forecast.yaml
+
+# 3. Commit changes and push to Github
+```
+
+## 4.3 Enable Actions
+
+In Github go to your repository and navigate to the ACTIONS tab and make
+sure they are enabled. If they’re not go to Settings \> Actions \>
+General and check the Allow actions and reusable workflows.
+
+## 4.4 Test the Action
+
+-   Go back to Actions.
+-   Click on the workflow in the left panel
+    `.github/workflows/run_forecast.yaml`
+-   Test the workflow runs by using the Run workflow button \> Run
+    workflow
+-   Your job has been requested and will initiate soon
+-   The progress of the job can be checked by clicking on it (Yellow
+    running, Green completed, Red failed)
+-   You can view the output of the job including what is produced in the
+    console by clicking on the relevant sections of the job
+
+You now have a fully automated forecast workflow!
