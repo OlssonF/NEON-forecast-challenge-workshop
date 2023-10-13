@@ -28,7 +28,7 @@ affiliations:
    index: 2
  - name: Department of Forest Resources and Environmental Conservation, Virginia Tech, Blacksburg, Virginia, USA
    index: 3
-date: 12 October 2023
+date: 13 October 2023
 bibliography: paper.bib
 ---
 
