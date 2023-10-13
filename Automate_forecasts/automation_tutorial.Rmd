@@ -73,9 +73,14 @@ This workflow file should be saved into a sub-directory called `.github/workflow
 
 # Let's try and put this together
 
-## Writing a yaml
-Start by writing our yaml file:
+## Writing your forecast script
 
+First we need a script that the action will run on. In the YAML above the action will run the command `Rscript forecast_code.R`.
+Create a file in the top directory of you repository called `forecast_code.R` that contains all the information needed to generate your forecast and submit it to the Challenge (read targets, fit model, generate forecast, submit etc.).
+
+## Writing a yaml
+
+Next we need a YAML file that will be run by the Github action:
 
 ```{r}
 # 1. Make directory
@@ -83,7 +88,8 @@ parent_dir <- here::here()
 dir.create(file.path(parent_dir,'.github/workflows'), recursive = T)
 
 # 2. Create yaml file
-# Copy chunk above into new text file (make sure the indentation is the same) and save into the .github/workflows directory
+# Copy chunk above into new text file (make sure the indentation is the same) and save into the .github/workflows directory with the yaml extension
+# run.forecast.yaml
 
 # 3. Commit changes and push to Github
 ```
@@ -97,6 +103,6 @@ In Github go to your repository and navigate to the ACTIONS tab and make sure th
 * Test the workflow runs by using the Run workflow button > Run workflow
 * Your job has been requested and will initiate soon 
 * The progress of the job can be checked by clicking on it (Yellow running, Green completed, Red failed)
-* You can view the output of the job including what is produced in the console by clicking on the relevent sections of the job
+* You can view the output of the job including what is produced in the console by clicking on the relevant sections of the job
 
 You now have a fully automated forecast workflow!
