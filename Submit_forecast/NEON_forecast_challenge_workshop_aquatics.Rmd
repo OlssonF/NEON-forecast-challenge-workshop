@@ -373,8 +373,9 @@ We need to make sure the dataframe is in the correct format and then we can subm
 my_model_id <- 'example_ID'
 
 temp_lm_forecast_EFI <- temp_lm_forecast %>%
+  filter(datetime > forecast_date) %>%
   mutate(model_id = my_model_id,
-         reference_datetime = as_date(min(datetime)) - days(1),
+         reference_datetime = forecast_date,
          family = 'ensemble',
          parameter = as.character(parameter)) %>%
   select(datetime, reference_datetime, site_id, family, parameter, variable, prediction, model_id)
