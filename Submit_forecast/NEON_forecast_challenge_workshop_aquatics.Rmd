@@ -364,7 +364,7 @@ For an ensemble forecast the documentation specifies the following columns:
 * `parameter`: integer value for forecast replicate (from the `.rep` in fable output);
 * `variable`: standardized variable name from the theme 
 * `prediction`: forecasted value (from the `.sim` column in fable output)
-* `model_id`: model name (no spaces)
+* `model_id`: model name (no spaces). Any model_id that includes 'example' will not be included in analysis. It will still be evaluated against observations but will be deleted. This is good for testing and trying out new modelling ideas. 
 
 We need to make sure the dataframe is in the correct format and then we can submit this to the challenge as well! This is an ensemble forecast (specified in the `family` column). 
 
@@ -415,13 +415,14 @@ neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_1),
                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 ```
 
-Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using yesterday's air and water temperatures to predict tomorrow? Or including additional parameters? There's a lot of variability in water temperatures unexplained by air temperature alone.
+Is the linear model a reasonable relationship between air temperature and water temperature? Would some non-linear relationship be better? What about using yesterday's air and water temperatures to predict tomorrow? Or including additional parameters? There's a lot of variability in water temperatures unexplained by air temperature alone. Could we use the residuals from this fit to add an extra source of uncertainty?
 
 ```{r, echo=F, warning=F}
 ggplot(targets_lm, aes(x=air_temperature, y= temperature, colour = site_id)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = 'lm') +
-  theme_bw()
+  theme_bw() +
+  facet_wrap(~site_id)
 ```
 
 
