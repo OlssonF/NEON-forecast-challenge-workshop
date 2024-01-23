@@ -64,7 +64,7 @@ jobs:
           fetch-depth: 0
           
       - name: Run automatic prediction file
-        run: Rscript forecast_code.R 
+        run: Rscript -e 'rmarkdown::render(input = "forecast_code_template.Rmd")' 
 ```
 
 Once all the instructions/steps are run the container will close. When a container closes all data created (like the "aquatics-2023-07-22-example_ID.csv" file) will be lost. If you need to retrieve anything from an automated Github Action it needs to be pushed back to Github or to a remote location (e.g. cloud storage). 
