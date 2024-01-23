@@ -1,6 +1,8 @@
 ---
 title: "NEON forecast challenge submission"
-output: html_document
+output: 
+  md_document: 
+    variant: markdown_github
 date: "`r Sys.Date()`"
 ---
 
