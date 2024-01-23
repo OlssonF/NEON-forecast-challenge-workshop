@@ -55,17 +55,21 @@ on:
 jobs:
   run_forecast:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     container:
       image: eco4cast/rocker-neon4cast
     steps:
+      - run: git config --system --add safe.directory '*'
+      
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
           
       - name: Run automatic prediction file
-        run: Rscript -e 'rmarkdown::render(input = "Submit_forecast/forecast_code_template.Rmd")' 
-      
+        run: Rscript -e 'rmarkdown::render(input = "Submit_forecast/forecast_code_template.Rmd")'
+        
       - name: commit + push output
         run: |
           git config user.name github-actions
@@ -73,7 +77,7 @@ jobs:
           git pull
           git add Submit_forecast/forecast_code_template.md
           git commit -m "New forecast generated" || echo "No changes to commit"
-          git push
+          git push https://${GITHUB_PAT}:${GITHUB_PAT}@github.com/${GITHUB_REPOSITORY} 
 ```
 
 Once all the instructions/steps are run the container will close. When a container closes all data created (like the "aquatics-2023-07-22-example_ID.csv" file) will be lost. If you need to retrieve anything from an automated Github Action it needs to be pushed back to Github or to a remote location (e.g. cloud storage). 
