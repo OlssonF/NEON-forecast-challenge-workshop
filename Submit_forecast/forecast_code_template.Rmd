@@ -1,3 +1,15 @@
+---
+title: "NEON forecast challenge submission"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load-packages, echo = F, warning=F, message=F}
 ## install.packages('remotes')
 ## install.packages('fpp3') # package for applying simple forecasting methods
 ## install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
@@ -9,6 +21,9 @@
 library(tidyverse)
 library(lubridate)
 
+```
+
+```{r get-targets, message=F}
 #read in the targets data
 targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aquatics-targets.csv.gz')
 
@@ -23,8 +38,10 @@ lake_sites <- aquatic_sites %>%
 targets <- targets %>%
   filter(site_id %in% lake_sites$field_site_id,
          variable == 'temperature')
+```
 
-# Get weather covariates ----------------------
+```{r get-NOAA-past, message = F}
+
 # Past stacked weather
 noaa_past_s3 <- neon4cast::noaa_stage3()
 
@@ -46,6 +63,9 @@ noaa_past_mean <- noaa_past |>
   # convert air temp to C
   mutate(air_temperature = air_temperature - 273.15)
 
+```
+
+```{r get-NOAA-future, message = F}
 # Future weather
 # New forecast only available at 5am UTC the next day
 forecast_date <- Sys.Date() 
@@ -69,7 +89,9 @@ noaa_future_daily <- noaa_future |>
   # convert to Celsius
   mutate(air_temperature = air_temperature - 273.15) |> 
   select(datetime, site_id, air_temperature, parameter)
+```
 
+```{r model-setup}
 # Generate a dataframe to fit the model to 
 targets_lm <- targets |> 
   filter(variable == 'temperature') |>
@@ -80,6 +102,9 @@ targets_lm <- targets |>
 # Loop through each site to fit the model
 temp_lm_forecast <- NULL
 
+```
+
+```{r forecast-loop}
 for(i in 1:length(lake_sites$field_site_id)) {  
   
   example_site <- lake_sites$field_site_id[i]
@@ -108,7 +133,9 @@ for(i in 1:length(lake_sites$field_site_id)) {
   message(example_site, ' temperature forecast run')
   
 }
+```
 
+```{r make-standard}
 # Make forecast fit the EFI standards
 # Remember to change the model_id when you make changes to the model structure!
 my_model_id <- 'example_ID'
@@ -121,6 +148,9 @@ temp_lm_forecast_EFI <- temp_lm_forecast %>%
          parameter = as.character(parameter)) %>%
   select(datetime, reference_datetime, site_id, family, parameter, variable, prediction, model_id)
 
+```
+
+```{r write-forecast}
 # Write the forecast to file
 theme <- 'aquatics'
 date <- temp_lm_forecast_EFI$reference_datetime[1]
@@ -137,6 +167,10 @@ write_csv(temp_lm_forecast_EFI, file.path('Forecasts',forecast_file_1))
 
 neon4cast::forecast_output_validator(file.path('Forecasts',forecast_file_1))
 
+```
+
+
+```{r submit-forecast}
 
 ## # can uses the neon4cast::forecast_output_validator() to check the forecast is in the right format
 
@@ -144,3 +178,13 @@ neon4cast::forecast_output_validator(file.path('Forecasts',forecast_file_1))
 ## neon4cast::submit(forecast_file = file.path('Forecasts', forecast_file_1),
 ##                   ask = FALSE) # if ask = T (default), it will produce a pop-up box asking if you want to submit
 
+
+```
+
+```{r plot-forecast}
+temp_lm_forecast_EFI |> 
+  ggplot(aes(x=datetime, y=prediction, group = parameter)) +
+  geom_line() +
+  facet_wrap(~site_id) +
+  labs(title = paste0('Forecast generated for ', temp_lm_forecast_EFI$variable[1], ' on ', temp_lm_forecast_EFI$reference_datetime[1]))
+```
