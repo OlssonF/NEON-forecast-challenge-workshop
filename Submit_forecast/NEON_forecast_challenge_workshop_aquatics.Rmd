@@ -934,7 +934,7 @@ EFI has also produced a package that summarizes the proposed community standards
 You can look at what other variables are available in the NOAA weather data. There's information in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html) too.
 
 ```{r}
-df_past %>%
+noaa_past_s3 %>%
   filter(site_id == 'ARIK',
          datetime > ymd('2022-01-01')) |> 
   dplyr::collect() |> 
