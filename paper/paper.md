@@ -28,7 +28,7 @@ affiliations:
    index: 2
  - name: Department of Forest Resources and Environmental Conservation, Virginia Tech, Blacksburg, Virginia, USA
    index: 3
-date: 13 October 2023
+date: 28 February 2024
 bibliography: paper.bib
 ---
 
@@ -44,32 +44,32 @@ Ecological forecasting is an emerging field which aims to improve natural resour
 
 The NEON Forecasting Challenge, hosted by the Ecological Forecasting Initiative Research Coordination Network (EFI-RCN), aims to create a community of practice that builds capacity for ecological forecasting by leveraging recently-available NEON data [@Thomas2023]. The Challenge revolves around five themes (Aquatics, Terrestrial, Phenology, Beetles, Ticks) that span aquatic and terrestrial systems, and population, community, and ecosystem processes across 81 NEON sites spanning the U.S. The motivation of the Challenge is for teams and individuals to forecast the conditions at NEON sites before the data are collected. Forecasts submitted to the Challenge are automatically evaluated against observations when they become available from NEON. By collating forecasts from many different models and sites, the Challenge organisers and participants aim to quantify how ecological predictability varies over space and time.
 
-This tutorial was initially developed for the 2022 Global Lakes Ecological Observatory Network (GLEON) All-Hands' conference, a lake-focused group of undergraduates, graduate students, postdoctoral researchers, and faculty with a range of forecasting and coding experience. The 90-minute tutorial, which has since been taught in eight workshop/classroom settings (Table 1). The GLEON workshop was given on the first day of the five-day conference. This timing enabled forecasts that were submitted at the workshop to be evaluated throughout the conference, for participants to see how their forecasts fared in near-real time against newly collected data, and for a "winner" declared on the final day.
+This tutorial was initially developed for the 2022 Global Lakes Ecological Observatory Network (GLEON) All-Hands' conference, a lake-focused group of undergraduates, graduate students, postdoctoral researchers, and faculty with a range of forecasting and coding experience. The 90-minute tutorial, which has since been taught in eight workshop/classroom settings (Table 1). The GLEON workshop was given on the first day of the five-day conference. This timing enabled forecasts that were submitted at the workshop to be evaluated throughout the conference, for participants to see how their forecasts fared in near-real time against newly collected data, and for a "winner" to be declared on the final day.
 
-+:-------------------------------------------------------+:---------------------------------------+:------------------------------------+:--------------------+
-| **Name of meeting or group delivered to**              | **Approximate number of participants** | **Modality**                        | **Challenge theme** |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| GLEON\* All-Hands conference                           | 50                                     | In-person                           | Aquatics            |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| InventWater PhD training programme                     | 15                                     | Synchronous on-line                 | Aquatics            |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| GLEON All-Hands' Virtual conference                    | 70                                     | Asynchronous on-line (pre-recorded) | Aquatics            |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| AEMON-J\*\*/DSOS\*\*\* Hacking Limnology               | 70                                     | Synchronous on-line                 | Aquatics            |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| Global Change Ecology Lab,                             | 10                                     | Synchronous on-line                 | Terrestrial         |
-|                                                        |                                        |                                     |                     |
-| University of Edinburgh                                |                                        |                                     |                     |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| NEON Technical Working Group on Ecological Forecasting | 10                                     | Synchronous on-line                 | Terrestrial         |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| Ecological Society of America                          | 50                                     | In-person                           | Terrestrial         |
-|                                                        |                                        |                                     |                     |
-| Annual conference workshop                             |                                        |                                     |                     |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-| Undergraduate environmental data science class         | 40                                     | In-person                           | Terrestrial         |
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
-+--------------------------------------------------------+----------------------------------------+-------------------------------------+---------------------+
++:-------------------------------------------------------+:---------------------------------------+:------------------------------------+:---------------------+
+| **Name of meeting or group delivered to**              | **Approximate number of participants** | **Modality**                        | **Challenge theme**  |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| GLEON\* All-Hands conference                           | 50                                     | In-person                           | Aquatics             |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| InventWater PhD training programme                     | 15                                     | Synchronous on-line                 | Aquatics             |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| GLEON All-Hands' Virtual conference                    | 70                                     | Asynchronous on-line (pre-recorded) | Aquatics             |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| AEMON-J\*\*/DSOS\*\*\* Hacking Limnology               | 70                                     | Synchronous on-line                 | Aquatics             |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| Global Change Ecology Lab,                             | 10                                     | Synchronous on-line                 | Terrestrial          |
+|                                                        |                                        |                                     |                      |
+| University of Edinburgh                                |                                        |                                     |                      |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| NEON Technical Working Group on Ecological Forecasting | 10                                     | Synchronous on-line                 | Terrestrial          |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| Ecological Society of America                          | 50                                     | In-person                           | Terrestrial          |
+|                                                        |                                        |                                     |                      |
+| Annual conference workshop                             |                                        |                                     |                      |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| Graduate environmental data science class              | 40                                     | In-person                           | Terrestrial/Aquatics |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+
 : Table 1 Implementation of the tutorial by the authors across a range of settings. The participants in these workshops covered a wide range of forecasting and coding experience.
 
 ^\*Global Lake Ecological Observatory Network; \*\*Aquatic Ecosystem MOdeling Network - Junior; \*\*\*Data Science Open Science^
@@ -92,7 +92,7 @@ These objectives may be adapted depending on the context of the tutorial. If the
 
 ## Instructional design
 
-The tutorial is provided in a public GitHub repository that includes an introductory presentation (Microsoft PowerPoint or PDF format), an Rmarkdown document, a rendered version of the markdown file (.md), as well as pre-tutorial instructions for participants. The tutorial has been developed to allow for both in-person and virtual participation (see Table 1) and can be completed synchronously as part of an instructor-led workshop or course or asynchronously, in a self-paced tutorial. The tutorial is based in R, which is popular among scientists, especially in ecology [@Lai2019].
+The tutorial is provided in a public GitHub repository that includes an introductory presentation (Microsoft PowerPoint or PDF format), Rmarkdown documents, rendered versions of the markdown files (.md), as well as pre-tutorial instructions for participants. The tutorial has been developed to allow for both in-person and virtual participation (see Table 1) and can be completed synchronously as part of an instructor-led workshop or course or asynchronously, in a self-paced tutorial. The tutorial is based in R, which is popular among scientists, especially in ecology [@Lai2019].
 
 ## The tutorial
 
@@ -112,7 +112,7 @@ The second part of the tutorial walks participants through a pre-written Rmarkdo
 
 ### Open time for discussion, hands-on help, and/or code modification (20-30 minutes)
 
-For a standard 90-minute workshop, remaining time can be used for multiple purposes depending on the interest and abilities of the participants. For example, we have used this time to debug user-specific code issues (package installation etc.), allow participants to modify the forecast model code, explore alternative forecast methods, or form forecasting teams to submit additional forecasts to the Challenge beyond the workshop session. Some potential topics and additional activities are detailed at the end of the Rmarkdown, including code for alternative forecasting methods or possible modifications to the example forecast. Engagement in this part of the tutorial has proved important for promoting continued participation with the Challenge and has been more successful during in-person compared to virtual settings.
+For a standard 90-minute workshop, remaining time can be used for multiple purposes depending on the interest and abilities of the participants. For example, we have used this time to debug user-specific code issues (package installation etc.), allow participants to modify the forecast model code available in the template (`forecast_code_template.Rmd`), explore alternative forecast methods, or form forecasting teams to submit additional forecasts to the Challenge beyond the workshop session. Some potential topics and additional activities are detailed at the end of the Rmarkdown, including code for alternative forecasting methods or possible modifications to the example forecast. Engagement in this part of the tutorial has proved important for promoting continued participation with the Challenge and has been more successful during in-person compared to virtual settings.
 
 ### Optional extension with advanced concepts
 
