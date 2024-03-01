@@ -1,88 +1,64 @@
--   <a href="#this-r-markdown-document" id="toc-this-r-markdown-document">1
-    This R markdown document</a>
--   <a href="#introduction-to-neon-forecast-challenge"
-    id="toc-introduction-to-neon-forecast-challenge">2 Introduction to NEON
-    forecast challenge</a>
-    -   <a href="#aquatics-challenge" id="toc-aquatics-challenge">2.1 Aquatics
-        challenge</a>
-    -   <a href="#submission-requirements" id="toc-submission-requirements">2.2
-        Submission requirements</a>
--   <a href="#the-forecasting-workflow" id="toc-the-forecasting-workflow">3
-    The forecasting workflow</a>
-    -   <a href="#read-in-the-data" id="toc-read-in-the-data">3.1 Read in the
-        data</a>
-    -   <a href="#visualise-the-data" id="toc-visualise-the-data">3.2 Visualise
-        the data</a>
--   <a href="#introducing-co-variates" id="toc-introducing-co-variates">4
-    Introducing co-variates</a>
-    -   <a href="#download-co-variates" id="toc-download-co-variates">4.1
-        Download co-variates</a>
-        -   <a href="#download-historic-data" id="toc-download-historic-data">4.1.1
-            Download historic data</a>
-        -   <a href="#download-future-weather-forecasts"
-            id="toc-download-future-weather-forecasts">4.1.2 Download future weather
-            forecasts</a>
--   <a href="#model-1-linear-model-with-covariates"
-    id="toc-model-1-linear-model-with-covariates">5 Model 1: Linear model
-    with covariates</a>
-    -   <a href="#specify-forecast-model" id="toc-specify-forecast-model">5.1
-        Specify forecast model</a>
-    -   <a href="#convert-to-efi-standard-for-submission"
-        id="toc-convert-to-efi-standard-for-submission">5.2 Convert to EFI
-        standard for submission</a>
-    -   <a href="#submit-forecast" id="toc-submit-forecast">5.3 Submit
-        forecast</a>
-    -   <a href="#tasks" id="toc-tasks">5.4 TASKS</a>
-    -   <a href="#register-your-participation"
-        id="toc-register-your-participation">5.5 Register your participation</a>
--   <a href="#alternative-forecasting-approaches"
-    id="toc-alternative-forecasting-approaches">6 Alternative forecasting
-    approaches</a>
-    -   <a href="#model-2-persistence" id="toc-model-2-persistence">6.1 Model 2:
-        Persistence</a>
-        -   <a href="#convert-to-efi-standard-for-submission-1"
-            id="toc-convert-to-efi-standard-for-submission-1">6.1.1 Convert to EFI
-            standard for submission</a>
-        -   <a href="#write-the-forecast-to-file"
-            id="toc-write-the-forecast-to-file">6.1.2 Write the forecast to file</a>
-        -   <a href="#submit-forecast-1" id="toc-submit-forecast-1">6.1.3 Submit
-            forecast</a>
-        -   <a href="#tasks-1" id="toc-tasks-1">6.1.4 TASKS</a>
-    -   <a href="#model-3-climatology-model"
-        id="toc-model-3-climatology-model">6.2 Model 3: Climatology model</a>
-        -   <a href="#write-the-forecast-for-neon-efi-challenge"
-            id="toc-write-the-forecast-for-neon-efi-challenge">6.2.1 Write the
-            forecast for NEON EFI challenge</a>
-        -   <a href="#submit-forecast-2" id="toc-submit-forecast-2">6.2.2 Submit
-            forecast</a>
-        -   <a href="#tasks-2" id="toc-tasks-2">6.2.3 TASKS</a>
--   <a href="#other-things-that-might-be-useful"
-    id="toc-other-things-that-might-be-useful">7 Other things that might be
-    useful</a>
-    -   <a href="#how-the-forecasts-are-scored"
-        id="toc-how-the-forecasts-are-scored">7.1 How the forecasts are
-        scored?</a>
-    -   <a href="#other-useful-r-packages" id="toc-other-useful-r-packages">7.2
-        Other useful R packages</a>
-    -   <a href="#other-weather-variables" id="toc-other-weather-variables">7.3
-        Other weather variables</a>
-    -   <a href="#file-format" id="toc-file-format">7.4 File format</a>
-    -   <a href="#automating-your-forecasting-workflow"
-        id="toc-automating-your-forecasting-workflow">7.5 Automating your
-        forecasting workflow</a>
-    -   <a
-        href="#alternative-methods-to-loop-through-each-variable-site_id-combination"
-        id="toc-alternative-methods-to-loop-through-each-variable-site_id-combination">7.6
-        Alternative methods to loop through each variable-site_id
-        combination</a>
+-   [1 This R markdown document](#this-r-markdown-document)
+-   [2 Introduction to NEON forecast
+    challenge](#introduction-to-neon-forecast-challenge)
+    -   [2.1 Aquatics challenge](#aquatics-challenge)
+    -   [2.2 Submission requirements](#submission-requirements)
+-   [3 The forecasting workflow](#the-forecasting-workflow)
+    -   [3.1 Read in the data](#read-in-the-data)
+    -   [3.2 Visualise the data](#visualise-the-data)
+-   [4 Introducing co-variates](#introducing-co-variates)
+    -   [4.1 Download co-variates](#download-co-variates)
+        -   [4.1.1 Download historic data](#download-historic-data)
+        -   [4.1.2 Download future weather
+            forecasts](#download-future-weather-forecasts)
+-   [5 Model 1: Linear model with
+    covariates](#model-1-linear-model-with-covariates)
+    -   [5.1 Specify forecast model](#specify-forecast-model)
+    -   [5.2 Convert to EFI standard for
+        submission](#convert-to-efi-standard-for-submission)
+    -   [5.3 Submit forecast](#submit-forecast)
+    -   [5.4 TASKS](#tasks)
+    -   [5.5 Register your participation](#register-your-participation)
+-   [6 Alternative forecasting
+    approaches](#alternative-forecasting-approaches)
+    -   [6.1 Model 2: Persistence](#model-2-persistence)
+        -   [6.1.1 Convert to EFI standard for
+            submission](#convert-to-efi-standard-for-submission-1)
+        -   [6.1.2 Write the forecast to
+            file](#write-the-forecast-to-file)
+        -   [6.1.3 Submit forecast](#submit-forecast-1)
+        -   [6.1.4 TASKS](#tasks-1)
+    -   [6.2 Model 3: Climatology model](#model-3-climatology-model)
+        -   [6.2.1 Write the forecast for NEON EFI
+            challenge](#write-the-forecast-for-neon-efi-challenge)
+        -   [6.2.2 Submit forecast](#submit-forecast-2)
+        -   [6.2.3 TASKS](#tasks-2)
+-   [7 Other things that might be
+    useful](#other-things-that-might-be-useful)
+    -   [7.1 How the forecasts are
+        scored?](#how-the-forecasts-are-scored)
+    -   [7.2 Other useful R packages](#other-useful-r-packages)
+    -   [7.3 Other weather variables](#other-weather-variables)
+    -   [7.4 File format](#file-format)
+    -   [7.5 Automating your forecasting
+        workflow](#automating-your-forecasting-workflow)
+    -   [7.6 Alternative methods to loop through each variable-site_id
+        combination](#alternative-methods-to-loop-through-each-variable-site_id-combination)
 
 # 1 This R markdown document
 
-This document present workshop materials initially presented in the
-Forecast Challenge part of the GLEON2022 workshop “Introduction to
-real-time lake forecasting: learn, teach, and generate forecasts with
-Macrosystems EDDIE modules and the NEON Forecasting Challenge.” The
-materials have been modified slightly for use in additional workshops.
+This document presents workshop materials to get you started on
+generating forecasts specifically for submission to the EFI-NEON
+Forecasting Challenge. The Challenge goal is to create a community of
+practice that builds capacity for ecological forecasting by leveraging
+NEON data products. The Challenge revolves around the five theme areas
+that span aquatic and terrestrial systems, and population, community,
+and ecosystem processes across a broad range of ecoregions that uses
+data collected by NEON. Learn more about the Challenge
+[here](https://projects.ecoforecast.org/neon4cast-docs/)!
+
+The development of these materials has been supported by NSF grants
+DEB-1926388 and DBI-1933016.
 
 To complete the workshop via this markdown document the following
 packages will need to be installed:
@@ -124,30 +100,32 @@ library(tidyverse)
 
     ## Warning: package 'ggplot2' was built under R version 4.2.3
 
-    ## Warning: package 'tibble' was built under R version 4.2.1
+    ## Warning: package 'tibble' was built under R version 4.2.3
 
     ## Warning: package 'tidyr' was built under R version 4.2.2
 
-    ## Warning: package 'readr' was built under R version 4.2.1
+    ## Warning: package 'readr' was built under R version 4.2.3
 
-    ## Warning: package 'purrr' was built under R version 4.2.2
+    ## Warning: package 'purrr' was built under R version 4.2.3
 
-    ## Warning: package 'dplyr' was built under R version 4.2.1
+    ## Warning: package 'dplyr' was built under R version 4.2.3
 
-    ## Warning: package 'stringr' was built under R version 4.2.2
+    ## Warning: package 'stringr' was built under R version 4.2.3
 
     ## Warning: package 'forcats' was built under R version 4.2.3
 
+    ## Warning: package 'lubridate' was built under R version 4.2.3
+
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.0.10     ✔ readr     2.1.3 
-    ## ✔ forcats   1.0.0      ✔ stringr   1.5.0 
-    ## ✔ ggplot2   3.4.2      ✔ tibble    3.1.8 
-    ## ✔ lubridate 1.8.0      ✔ tidyr     1.3.0 
-    ## ✔ purrr     1.0.1      
+    ## ✔ dplyr     1.1.3     ✔ readr     2.1.4
+    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+    ## ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
+    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
+    ## ✔ purrr     1.0.2     
     ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
-    ## ℹ Use the ]8;;http://conflicted.r-lib.org/conflicted package]8;; to force all conflicts to become errors
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
 ``` r
 library(lubridate)
@@ -247,19 +225,19 @@ aquatic_sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-
 Let’s take a look at the targets data!
 
     ## # A tibble: 11 × 4
-    ##    datetime   site_id variable observation
-    ##    <date>     <chr>   <chr>          <dbl>
-    ##  1 2017-10-26 ARIK    oxygen          5.52
-    ##  2 2017-10-27 ARIK    chla           NA   
-    ##  3 2017-10-27 ARIK    oxygen          7.90
-    ##  4 2017-10-28 ARIK    chla           NA   
-    ##  5 2017-10-28 ARIK    oxygen          6.01
-    ##  6 2017-10-29 ARIK    chla           NA   
-    ##  7 2017-10-29 ARIK    oxygen          7.56
-    ##  8 2017-10-30 ARIK    chla           NA   
-    ##  9 2017-10-30 ARIK    oxygen          8.08
-    ## 10 2017-10-31 ARIK    chla           NA   
-    ## 11 2017-10-31 ARIK    oxygen          8.68
+    ##    datetime   site_id variable    observation
+    ##    <date>     <chr>   <chr>             <dbl>
+    ##  1 2017-04-23 ARIK    temperature       12.7 
+    ##  2 2017-04-24 ARIK    chla              NA   
+    ##  3 2017-04-24 ARIK    oxygen             7.10
+    ##  4 2017-04-24 ARIK    temperature       14.8 
+    ##  5 2017-04-25 ARIK    chla              NA   
+    ##  6 2017-04-25 ARIK    oxygen             6.58
+    ##  7 2017-04-25 ARIK    temperature       15.5 
+    ##  8 2017-04-26 ARIK    chla              NA   
+    ##  9 2017-04-26 ARIK    oxygen             7.32
+    ## 10 2017-04-26 ARIK    temperature       13.0 
+    ## 11 2017-04-27 ARIK    chla              NA
 
 The columns of the targets file show the time step (daily for aquatics
 challenge), the 4 character site code (`site_id`), the variable being
@@ -326,18 +304,18 @@ sites. The 3 types of data are as follows:
 -   stage_2: a processed version of Stage 1 in which fluxes are
     standardized to per second rates, fluxes and states are interpolated
     to 1 hour intervals and variables are renamed to match conventions.
-    We recommend this for obtaining future weather by using
-    `neon4cast::noaa_stage2()`. Future weather forecasts include a
-    30-member ensemble of equally likely future weather conditions.
+    We recommend this for obtaining future weather. Future weather
+    forecasts include a 30-member ensemble of equally likely future
+    weather conditions.
 -   stage_3: can be viewed as the “historical” weather and is
     combination of day 1 weather forecasts (i.e., when the forecasts are
-    most accurate). You can download this “stacked” NOAA product using
-    `neon4cast::noaa_stage3()`.
+    most accurate).
 
-These functions create a connection to the dataset hosted on the
-eco4cast server. To download the data you have to tell the function to
-`collect()` it. These data set can be subsetted and filtered using
-`dplyr` functions prior to download to limit the memory usage.
+This code create a connection to the dataset hosted on the eco4cast
+server (`neon4cast-drivers/noaa/gefs-v12`) using `arrow` functions. To
+download the data you have to tell the function to `collect()` it. These
+data set can be subsetted and filtered using `dplyr` functions prior to
+download to limit the memory usage.
 
 You can read more about the NOAA forecasts available for the NEON sites
 [here:](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html)
@@ -352,12 +330,12 @@ it accesses the NOAA data.
 
 ``` r
 # past stacked weather
-df_past <- neon4cast::noaa_stage3()
+noaa_past_s3 <- neon4cast::noaa_stage3()
 
 variables <- c("air_temperature")
 #Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-3
 
-noaa_past <- df_past |> 
+noaa_past <- noaa_past_s3  |> 
   dplyr::filter(site_id %in% lake_sites$field_site_id,
                 datetime >= ymd('2017-01-01'),
                 variable %in% variables) |> 
@@ -366,21 +344,21 @@ noaa_past <- df_past |>
 noaa_past
 ```
 
-    ## # A tibble: 9,357,908 × 9
-    ##    datetime            site_id longitude latitude family   parameter variable   
-    ##    <dttm>              <chr>       <dbl>    <dbl> <chr>        <int> <chr>      
-    ##  1 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         1 air_temper…
-    ##  2 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         2 air_temper…
-    ##  3 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         3 air_temper…
-    ##  4 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         4 air_temper…
-    ##  5 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         5 air_temper…
-    ##  6 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         6 air_temper…
-    ##  7 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         7 air_temper…
-    ##  8 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         8 air_temper…
-    ##  9 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble         9 air_temper…
-    ## 10 2020-09-25 00:00:00 PRLA        -99.1     47.2 ensemble        10 air_temper…
-    ## # ℹ 9,357,898 more rows
-    ## # ℹ 2 more variables: height <chr>, prediction <dbl>
+    ## # A tibble: 6,531,049 × 7
+    ##    parameter datetime            variable   prediction family reference_datetime
+    ##        <dbl> <dttm>              <chr>           <dbl> <chr>  <lgl>             
+    ##  1         0 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  2         1 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  3         2 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  4         3 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  5         4 2020-09-24 00:00:00 air_tempe…       298. ensem… NA                
+    ##  6         5 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  7         6 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  8         7 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ##  9         8 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ## 10         9 2020-09-24 00:00:00 air_tempe…       297. ensem… NA                
+    ## # ℹ 6,531,039 more rows
+    ## # ℹ 1 more variable: site_id <chr>
 
 This is a stacked ensemble forecast of the one day ahead forecasts. To
 get an estimate of the historic conditions we can take a mean of these
@@ -413,16 +391,14 @@ forecast by forecasting multiple (31) future water temperatures.
 forecast_date <- Sys.Date() 
 noaa_date <- forecast_date - days(1)
 
-df_future <- neon4cast::noaa_stage2()
-
+noaa_future_s3 <- neon4cast::noaa_stage2(start_date = as.character(noaa_date))
 variables <- c("air_temperature")
 
-noaa_future <- df_future |> 
-  dplyr::filter(reference_datetime == noaa_date,
-                datetime >= forecast_date,
+noaa_future <- noaa_future_s3 |> 
+  dplyr::filter(datetime >= forecast_date,
                 site_id %in% lake_sites$field_site_id,
                 variable %in% variables) |> 
-  dplyr::collect()
+  collect()
 ```
 
 The forecasts are hourly and we are interested in using daily mean air
@@ -447,21 +423,21 @@ noaa_future_daily <- noaa_future |>
 noaa_future_daily
 ```
 
-    ## # A tibble: 7,462 × 4
-    ## # Groups:   datetime, site_id, parameter [7,462]
+    ## # A tibble: 7,595 × 4
+    ## # Groups:   datetime, site_id, parameter [7,595]
     ##    datetime   site_id air_temperature parameter
-    ##    <date>     <chr>             <dbl>     <int>
-    ##  1 2023-07-17 BARC               28.4         1
-    ##  2 2023-07-17 BARC               29.4         2
-    ##  3 2023-07-17 BARC               28.4         3
-    ##  4 2023-07-17 BARC               27.8         4
-    ##  5 2023-07-17 BARC               29.6         5
-    ##  6 2023-07-17 BARC               28.2         6
-    ##  7 2023-07-17 BARC               28.6         7
-    ##  8 2023-07-17 BARC               27.6         8
-    ##  9 2023-07-17 BARC               28.9         9
-    ## 10 2023-07-17 BARC               28.7        10
-    ## # ℹ 7,452 more rows
+    ##    <date>     <chr>             <dbl>     <dbl>
+    ##  1 2024-03-01 BARC               19.3         0
+    ##  2 2024-03-01 BARC               18.7         1
+    ##  3 2024-03-01 BARC               18.9         2
+    ##  4 2024-03-01 BARC               19.1         3
+    ##  5 2024-03-01 BARC               19.2         4
+    ##  6 2024-03-01 BARC               18.8         5
+    ##  7 2024-03-01 BARC               19.3         6
+    ##  8 2024-03-01 BARC               19.1         7
+    ##  9 2024-03-01 BARC               17.6         8
+    ## 10 2024-03-01 BARC               18.7         9
+    ## # ℹ 7,585 more rows
 
 Now we have a timeseries of historic data and a 30 member ensemble
 forecast of future air temperatures
@@ -496,17 +472,17 @@ targets_lm[1000:1010,]
     ## # A tibble: 11 × 4
     ##    datetime   site_id temperature air_temperature
     ##    <date>     <chr>         <dbl>           <dbl>
-    ##  1 2021-06-04 BARC           28.6            22.5
-    ##  2 2021-06-05 BARC           28.9            22.7
-    ##  3 2021-06-06 BARC           29.3            23.1
-    ##  4 2021-06-07 BARC           29.5            23.1
-    ##  5 2021-06-08 BARC           29.8            23.5
-    ##  6 2021-06-09 BARC           30.0            23.7
-    ##  7 2021-06-10 BARC           30.3            23.3
-    ##  8 2021-06-11 BARC           30.6            23.8
-    ##  9 2021-06-12 BARC           30.4            23.6
-    ## 10 2021-06-13 BARC           30.2            23.2
-    ## 11 2021-06-14 BARC           29.7            21.8
+    ##  1 2020-10-16 BARC             NA            25.5
+    ##  2 2020-10-17 BARC             NA            22.6
+    ##  3 2020-10-18 BARC             NA            23.6
+    ##  4 2020-10-19 BARC             NA            24.1
+    ##  5 2020-10-20 BARC             NA            24.7
+    ##  6 2020-10-21 BARC             NA            24.4
+    ##  7 2020-10-22 BARC             NA            23.8
+    ##  8 2020-10-23 BARC             NA            23.7
+    ##  9 2020-10-24 BARC             NA            24.0
+    ## 10 2020-10-25 BARC             NA            24.9
+    ## 11 2020-10-26 BARC             NA            24.9
 
 To fit the linear model we use the base R `lm()` but there are also
 methods to fit linear (and non-linear) models in the `fable::` package.
@@ -613,7 +589,10 @@ columns:
 -   `variable`: standardized variable name from the theme
 -   `prediction`: forecasted value (from the `.sim` column in fable
     output)
--   `model_id`: model name (no spaces)
+-   `model_id`: model name (no spaces). Any model_id that includes
+    ‘example’ will not be included in analysis. It will still be
+    evaluated against observations but will be deleted. This is good for
+    testing and trying out new modelling ideas.
 
 We need to make sure the dataframe is in the correct format and then we
 can submit this to the challenge as well! This is an ensemble forecast
@@ -624,11 +603,12 @@ can submit this to the challenge as well! This is an ensemble forecast
 my_model_id <- 'example_ID'
 
 temp_lm_forecast_EFI <- temp_lm_forecast %>%
+  filter(datetime > forecast_date) %>%
   mutate(model_id = my_model_id,
-         reference_datetime = as_date(min(datetime)) - days(1),
+         reference_datetime = forecast_date,
          family = 'ensemble',
          parameter = as.character(parameter)) %>%
-  select(model_id, datetime, reference_datetime, site_id, family, parameter, variable, prediction)
+  select(datetime, reference_datetime, site_id, family, parameter, variable, prediction, model_id)
 ```
 
 ## 5.3 Submit forecast
@@ -643,8 +623,6 @@ for submitting, scoring and reading forecasts:
     it will be scored
 -   `forecast_output_validator()` - will check the file is in the
     correct format to be submitted
--   `check_submission()` - check that your submission has been uploaded
-    to the server
 
 The file name needs to be in the format
 theme-reference_datetime-model_id
@@ -658,7 +636,7 @@ forecast_file_1 <- paste(theme, date, forecast_name_1, sep = '-')
 forecast_file_1
 ```
 
-    ## [1] "aquatics-2023-07-16-example_ID.csv"
+    ## [1] "aquatics-2024-03-01-example_ID.csv"
 
 ``` r
 if (!dir.exists('Forecasts')) {
@@ -670,15 +648,20 @@ write_csv(temp_lm_forecast_EFI, file.path('Forecasts',forecast_file_1))
 neon4cast::forecast_output_validator(file.path('Forecasts',forecast_file_1))
 ```
 
-    ## Forecasts/aquatics-2023-07-16-example_ID.csv
+    ## Forecasts/aquatics-2024-03-01-example_ID.csv
 
-    ## ✔ file name is correct
+    ## ✔ file has model_id column
     ## ✔ forecasted variables found correct variable + prediction column
-    ## ✔ file has ensemble distribution in family column
-    ## ✔ file has parameter and family column with ensemble generated distribution
+    ## ✔ file has correct family and parameter columns
     ## ✔ file has site_id column
-    ## ✔ file has time column
-    ## ✔ file has correct time column
+    ## ✔ file has datetime column
+    ## ✔ file has correct datetime column
+
+    ## Warning: file missing duration column (values for the column: daily = P1D,
+    ## hourly = PT1H)
+
+    ## Warning: file missing project_id column (use `neon4cast` as the project_id
+
     ## ✔ file has reference_datetime column
     ## Forecast format is valid
 
@@ -695,6 +678,8 @@ and water temperature? Would some non-linear relationship be better?
 What about using yesterday’s air and water temperatures to predict
 tomorrow? Or including additional parameters? There’s a lot of
 variability in water temperatures unexplained by air temperature alone.
+Could we use the residuals from this fit to add an extra source of
+uncertainty?
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
@@ -729,8 +714,8 @@ crucial for a couple of reasons:
     model requires a new `model_id`.
 2.  The form gives consent for submissions to be included in
     Challenge-wide syntheses being carried out by the Challenge
-    organisers. Partipants in the Challenge will be invited to join the
-    synthesis projects on an opt-in basis.
+    organisers. Long-term partipants in the Challenge will be invited to
+    join the synthesis projects on an opt-in basis.
 
 Questions about Challenge registration and synthesis participation can
 be directed to [Freya Olsson](mailto:freyao@vt.edu).
@@ -751,9 +736,8 @@ objects. We will also use the `tidyverse` to manipulate and visualise
 the target data and forecasts.
 
 ``` r
-# install.packages('fpp3')
-# install.packages('tsibble')
-# install via remotes::install_github('eco4cast/neon4cast')
+# install.packages('fpp3') # package for applying simple forecasting methods
+# install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
 
 library(fpp3)      # package for forecasting
 library(tsibble)   # package for dealing with time series data sets
@@ -818,7 +802,7 @@ targets |>
   pull()
 ```
 
-    ## [1] "2023-07-12"
+    ## [1] "2024-02-28"
 
 Specifying the model and forecasts in this way would be fine if we have
 data observed to yesterday but this often isn’t the case. For the NEON
@@ -849,15 +833,15 @@ forecast_starts
 ```
 
     ## # A tibble: 7 × 4
-    ##   site_id variable    reference_datetime h      
-    ##   <chr>   <chr>       <date>             <drtn> 
-    ## 1 BARC    temperature 2023-07-13         34 days
-    ## 2 CRAM    temperature 2023-07-13         34 days
-    ## 3 LIRO    temperature 2023-07-14         33 days
-    ## 4 PRLA    temperature 2023-07-13         34 days
-    ## 5 PRPO    temperature 2023-07-13         34 days
-    ## 6 SUGG    temperature 2023-07-13         34 days
-    ## 7 TOOK    temperature 2023-07-13         34 days
+    ##   site_id variable    reference_datetime h       
+    ##   <chr>   <chr>       <date>             <drtn>  
+    ## 1 BARC    temperature 2024-02-29          31 days
+    ## 2 CRAM    temperature 2023-11-15         137 days
+    ## 3 LIRO    temperature 2023-11-13         139 days
+    ## 4 PRLA    temperature 2023-10-26         157 days
+    ## 5 PRPO    temperature 2023-10-28         155 days
+    ## 6 SUGG    temperature 2024-02-29          31 days
+    ## 7 TOOK    temperature 2023-09-19         194 days
 
 You can see that the sites have different start dates, based on when the
 last observation was taken. We want to fit each site (and variable)
@@ -1028,27 +1012,32 @@ RW_forecast %>%
   filter(site_id == 'SUGG')
 ```
 
-    ## # A tsibble: 6,800 x 6 [1D]
+    ## # A tsibble: 6,200 x 6 [1D]
     ## # Key:       variable, site_id, .model, .rep [200]
     ##    variable    site_id .model datetime   .rep   .sim
     ##    <chr>       <chr>   <chr>  <date>     <chr> <dbl>
-    ##  1 temperature SUGG    RW     2023-07-13 1      30.1
-    ##  2 temperature SUGG    RW     2023-07-14 1      29.8
-    ##  3 temperature SUGG    RW     2023-07-15 1      29.4
-    ##  4 temperature SUGG    RW     2023-07-16 1      29.7
-    ##  5 temperature SUGG    RW     2023-07-17 1      30.0
-    ##  6 temperature SUGG    RW     2023-07-18 1      29.6
-    ##  7 temperature SUGG    RW     2023-07-19 1      30.4
-    ##  8 temperature SUGG    RW     2023-07-20 1      30.8
-    ##  9 temperature SUGG    RW     2023-07-21 1      30.4
-    ## 10 temperature SUGG    RW     2023-07-22 1      29.4
-    ## # ℹ 6,790 more rows
+    ##  1 temperature SUGG    RW     2024-02-29 1      17.9
+    ##  2 temperature SUGG    RW     2024-03-01 1      18.5
+    ##  3 temperature SUGG    RW     2024-03-02 1      18.2
+    ##  4 temperature SUGG    RW     2024-03-03 1      18.9
+    ##  5 temperature SUGG    RW     2024-03-04 1      19.9
+    ##  6 temperature SUGG    RW     2024-03-05 1      21.0
+    ##  7 temperature SUGG    RW     2024-03-06 1      21.4
+    ##  8 temperature SUGG    RW     2024-03-07 1      21.4
+    ##  9 temperature SUGG    RW     2024-03-08 1      21.2
+    ## 10 temperature SUGG    RW     2024-03-09 1      21.4
+    ## # ℹ 6,190 more rows
 
 How reasonable are these forecasts?? Is there a way to improve the
 persistence model? Is a transformation needed?
 
-![Figure: ‘random walk’ persistence forecasts for NEON lake
-sites](NEON_forecast_challenge_workshop_aquatics_files/figure-markdown_github/unnamed-chunk-29-1.png)
+<figure>
+<img
+src="NEON_forecast_challenge_workshop_aquatics_files/figure-markdown_github/unnamed-chunk-29-1.png"
+alt="Figure: ‘random walk’ persistence forecasts for NEON lake sites" />
+<figcaption aria-hidden="true">Figure: ‘random walk’ persistence
+forecasts for NEON lake sites</figcaption>
+</figure>
 
 Each line on the plot is one of the ensemble members (shown in the fable
 as `.rep`). You can also see that not all the “forecasted” days are true
@@ -1079,8 +1068,12 @@ columns:
 
 Looking back at the forecasts we produced:
 
-![annotated
-forecasts](NEON_forecast_challenge_workshop_aquatics_files/figure-markdown_github/unnamed-chunk-30-1.png)
+<figure>
+<img
+src="NEON_forecast_challenge_workshop_aquatics_files/figure-markdown_github/unnamed-chunk-30-1.png"
+alt="annotated forecasts" />
+<figcaption aria-hidden="true">annotated forecasts</figcaption>
+</figure>
 
 The forecast output from `fable` needs modifying slightly to fit the
 Challenge standards.
@@ -1104,12 +1097,12 @@ Now we have a forecast that can be submitted to the EFI challenge.
     ## # Key:       site_id, parameter, variable [1]
     ##   model_id   datetime   reference_datetime site_id family   parameter variable  
     ##   <chr>      <date>     <date>             <chr>   <chr>    <chr>     <chr>     
-    ## 1 example_RW 2023-07-18 2023-07-17         BARC    ensemble 1         temperatu…
-    ## 2 example_RW 2023-07-19 2023-07-17         BARC    ensemble 1         temperatu…
-    ## 3 example_RW 2023-07-20 2023-07-17         BARC    ensemble 1         temperatu…
-    ## 4 example_RW 2023-07-21 2023-07-17         BARC    ensemble 1         temperatu…
-    ## 5 example_RW 2023-07-22 2023-07-17         BARC    ensemble 1         temperatu…
-    ## 6 example_RW 2023-07-23 2023-07-17         BARC    ensemble 1         temperatu…
+    ## 1 example_RW 2024-03-02 2024-03-01         BARC    ensemble 1         temperatu…
+    ## 2 example_RW 2024-03-03 2024-03-01         BARC    ensemble 1         temperatu…
+    ## 3 example_RW 2024-03-04 2024-03-01         BARC    ensemble 1         temperatu…
+    ## 4 example_RW 2024-03-05 2024-03-01         BARC    ensemble 1         temperatu…
+    ## 5 example_RW 2024-03-06 2024-03-01         BARC    ensemble 1         temperatu…
+    ## 6 example_RW 2024-03-07 2024-03-01         BARC    ensemble 1         temperatu…
     ## # ℹ 1 more variable: prediction <dbl>
 
 ### 6.1.2 Write the forecast to file
@@ -1147,15 +1140,20 @@ for submitting, scoring and reading forecasts:
 neon4cast::forecast_output_validator(file.path('Forecasts', forecast_file_2))
 ```
 
-    ## Forecasts/aquatics-2023-07-17-example_RW.csv
+    ## Forecasts/aquatics-2024-03-01-example_RW.csv
 
-    ## ✔ file name is correct
+    ## ✔ file has model_id column
     ## ✔ forecasted variables found correct variable + prediction column
-    ## ✔ file has ensemble distribution in family column
-    ## ✔ file has parameter and family column with ensemble generated distribution
+    ## ✔ file has correct family and parameter columns
     ## ✔ file has site_id column
-    ## ✔ file has time column
-    ## ✔ file has correct time column
+    ## ✔ file has datetime column
+    ## ✔ file has correct datetime column
+
+    ## Warning: file missing duration column (values for the column: daily = P1D,
+    ## hourly = PT1H)
+
+    ## Warning: file missing project_id column (use `neon4cast` as the project_id
+
     ## ✔ file has reference_datetime column
     ## Forecast format is valid
 
@@ -1227,16 +1225,16 @@ SN_forecast
     ## # Key:     variable, site_id, .model [7]
     ##    variable    site_id .model datetime   observation .mean
     ##    <chr>       <chr>   <chr>  <date>          <dist> <dbl>
-    ##  1 temperature BARC    SN     2023-07-18  N(31, 4.1)  31.5
-    ##  2 temperature BARC    SN     2023-07-19  N(31, 4.1)  31.2
-    ##  3 temperature BARC    SN     2023-07-20  N(31, 4.1)  31.4
-    ##  4 temperature BARC    SN     2023-07-21  N(31, 4.1)  31.3
-    ##  5 temperature BARC    SN     2023-07-22  N(32, 4.1)  31.9
-    ##  6 temperature BARC    SN     2023-07-23  N(32, 4.1)  31.9
-    ##  7 temperature BARC    SN     2023-07-24  N(32, 4.1)  31.7
-    ##  8 temperature BARC    SN     2023-07-25  N(32, 4.1)  31.6
-    ##  9 temperature BARC    SN     2023-07-26  N(32, 4.1)  31.8
-    ## 10 temperature BARC    SN     2023-07-27  N(32, 4.1)  31.9
+    ##  1 temperature BARC    SN     2024-03-02    N(23, 4)  23.3
+    ##  2 temperature BARC    SN     2024-03-03    N(23, 4)  23.2
+    ##  3 temperature BARC    SN     2024-03-04    N(23, 4)  23.5
+    ##  4 temperature BARC    SN     2024-03-05    N(24, 4)  24.0
+    ##  5 temperature BARC    SN     2024-03-06    N(24, 4)  24.3
+    ##  6 temperature BARC    SN     2024-03-07    N(24, 4)  24.3
+    ##  7 temperature BARC    SN     2024-03-08    N(24, 4)  23.7
+    ##  8 temperature BARC    SN     2024-03-09    N(23, 4)  23.4
+    ##  9 temperature BARC    SN     2024-03-10    N(23, 4)  23.3
+    ## 10 temperature BARC    SN     2024-03-11    N(23, 4)  23.1
     ## # ℹ 200 more rows
 
 The output from this function is a `fable`. The prediction are held in
@@ -1296,16 +1294,16 @@ SN_forecast_EFI <- convert_to_efi_standard(SN_forecast,
     ## # Key:       site_id, parameter [14]
     ##    model_id      datetime   reference_datetime site_id family parameter variable
     ##    <chr>         <date>     <date>             <chr>   <chr>  <chr>     <chr>   
-    ##  1 example_clim… 2023-07-18 2023-07-17         BARC    normal mu        tempera…
-    ##  2 example_clim… 2023-07-18 2023-07-17         BARC    normal sigma     tempera…
-    ##  3 example_clim… 2023-07-19 2023-07-17         BARC    normal mu        tempera…
-    ##  4 example_clim… 2023-07-19 2023-07-17         BARC    normal sigma     tempera…
-    ##  5 example_clim… 2023-07-20 2023-07-17         BARC    normal mu        tempera…
-    ##  6 example_clim… 2023-07-20 2023-07-17         BARC    normal sigma     tempera…
-    ##  7 example_clim… 2023-07-21 2023-07-17         BARC    normal mu        tempera…
-    ##  8 example_clim… 2023-07-21 2023-07-17         BARC    normal sigma     tempera…
-    ##  9 example_clim… 2023-07-22 2023-07-17         BARC    normal mu        tempera…
-    ## 10 example_clim… 2023-07-22 2023-07-17         BARC    normal sigma     tempera…
+    ##  1 example_clim… 2024-03-02 2024-03-01         BARC    normal mu        tempera…
+    ##  2 example_clim… 2024-03-02 2024-03-01         BARC    normal sigma     tempera…
+    ##  3 example_clim… 2024-03-03 2024-03-01         BARC    normal mu        tempera…
+    ##  4 example_clim… 2024-03-03 2024-03-01         BARC    normal sigma     tempera…
+    ##  5 example_clim… 2024-03-04 2024-03-01         BARC    normal mu        tempera…
+    ##  6 example_clim… 2024-03-04 2024-03-01         BARC    normal sigma     tempera…
+    ##  7 example_clim… 2024-03-05 2024-03-01         BARC    normal mu        tempera…
+    ##  8 example_clim… 2024-03-05 2024-03-01         BARC    normal sigma     tempera…
+    ##  9 example_clim… 2024-03-06 2024-03-01         BARC    normal mu        tempera…
+    ## 10 example_clim… 2024-03-06 2024-03-01         BARC    normal sigma     tempera…
     ## # ℹ 410 more rows
     ## # ℹ 1 more variable: prediction <dbl>
 
@@ -1412,7 +1410,7 @@ documentation](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-D
 too.
 
 ``` r
-df_past %>%
+noaa_past_s3 %>%
   filter(site_id == 'ARIK',
          datetime > ymd('2022-01-01')) |> 
   dplyr::collect() |> 

@@ -452,9 +452,9 @@ Questions about Challenge registration and synthesis participation can be direct
 This forecasting method uses a method from the `fable` R package which is installed via `fpp3` package. The `fable` package implements a range of different forecasting methods including Persistence Models, Moving Average Models, ARIMA Models and Time Series Models. The package integrates with `tidyverse` syntax and has good documentation and examples found [here](https://otexts.com/fpp3/).
 `fable` and `fabletools`, are installed as part of the `fpp3` package and produce and deal with `mable` (model table) and `fable` (forecast table) objects. We will also use the `tidyverse` to manipulate and visualise the target data and forecasts. 
 
-```{r, 'load packages', eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
-install.packages('fpp3') # package for applying simple forecasting methods
-install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
+```{r, 'load packages', echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
+# install.packages('fpp3') # package for applying simple forecasting methods
+# install.packages('tsibble') # package for dealing with time series data sets and tsibble objects
 
 library(fpp3)      # package for forecasting
 library(tsibble)   # package for dealing with time series data sets
