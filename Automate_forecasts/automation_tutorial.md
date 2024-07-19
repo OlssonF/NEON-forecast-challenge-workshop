@@ -65,20 +65,15 @@ A basic description of a Github action:
     schedule based on timing codes found in <https://crontab.guru>.
 -   `jobs` this is what you are telling the machine to do. You can see
     that within the job we have other instructions that tell the machine
-    what `container` to use, some environmental variables (Github
-    credentials), and the various `steps` in the job. We use a container
-    `image` from eco4cast that has the neon4cast package plus others
-    installed (`eco4cast/rocker-neon4cast`).
+    what `container` to use and the various `steps` in the job. We use a
+    container `image` from eco4cast that has the neon4cast package plus
+    others installed (`eco4cast/rocker-neon4cast`).
     -   The first step is to `checkout repo` which uses a pre-made
         action `checkout` to get a copy of the Github repo.
-    -   Next, within the container, we knit the R markdown
-        `forecast_code_template.Rmd` from the Submit_forecast tutorial -
+    -   Next, within the container, we run the R script
+        `forecast_code_template.R` from the Submit_forecast tutorial -
         this is your forecast code that generates a forecast file and
         has code to submit the saved forecast to the Challenge.
-    -   Finally, `commit` and `push` the html back to your github repo
-        (using the save Github credentials that are stored as a secret).
-        Without this step when a container closes all data created (your
-        forecast file and the html) would be lost.
 
 Note: the indentation matters, make sure the indentation is as formatted
 here!
@@ -96,35 +91,24 @@ to do this!
     jobs:
       run_forecast:
         runs-on: ubuntu-latest
-        env:
-          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-        container:
+          container:
           image: eco4cast/rocker-neon4cast
         steps:
-          - run: git config --system --add safe.directory '*'
-          
           - name: Checkout repo
             uses: actions/checkout@v2
             with:
               fetch-depth: 0
               
-          - name: Run automatic prediction file
-            run: Rscript -e 'rmarkdown::render(input = "Submit_forecast/forecast_code_template.Rmd")'
+     # Point to the right path, run the right Rscript command
+          - name: Run automatic forecast submission
+            run: Rscript Submit_forecast/forecast_code_template.R
             
-          - name: commit + push output
-            run: |
-              git config user.name github-actions
-              git config user.email github-actions@github.com
-              git pull
-              git add Submit_forecast/forecast_code_template.html
-              git commit -m "New forecast generated" || echo "No changes to commit"
-              git push https://${GITHUB_PAT}:${GITHUB_PAT}@github.com/${GITHUB_REPOSITORY} 
 
 # 4 Let’s try and put this together
 
 ## 4.1 Writing your forecast code
 
-Make sure that the `forecast_code_template.Rmd` in the Submit_forecast
+Make sure that the `forecast_code_template.R` in the Submit_forecast
 directory contains all the code needed to generate your forecast and
 submit it to the Challenge (read targets, fit model, generate forecast,
 submit etc.).
