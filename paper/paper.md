@@ -128,7 +128,7 @@ From both workshop and classroom implementations of the tutorial (Table 1), seve
 
 Finally, the tutorial requires a stable and relatively fast internet connection. We found that slow internet speeds limited access to weather forecasts that are used to generate ecological forecasts, thus causing slower progress in the tutorial. This was especially pronounced at the in-person workshops at large conference centres (i.e., Ecological Society of America annual meeting; Table 1). This issue can be addressed by either having the rendered Rmarkdown document available so that individuals can follow along even if connectivity becomes an issue or providing access to remote computational environments (i.e., students execute code in a virtual machine that performs the data access in centralised data centres with large bandwidth).
 
-![Figure 1 Potential workshop/course structures using this tutorial. The original 90-minute workshop setup is shown as the "regular tutorial" which can be expanded and modified according to the time available, the anticipated skills and background of the participants and the goals of participation. \label{Figure_1}](Figure_1.png)
+![Figure 1 Potential workshop/course structures using this tutorial. The original 90-minute workshop setup is shown as the "regular tutorial" which can be expanded and modified according to the time available, the anticipated skills and background of the participants and the goals of participation. The alternate modes of delivery were delivered from administering the tutorial to audiences of mixed coding and forecasting experience shown in Table 1. \label{Figure_1}](Figure_1.png)
 
 # Acknowledgments
 
