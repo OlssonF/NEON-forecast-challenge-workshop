@@ -65,9 +65,11 @@ This tutorial was initially developed for the 2022 Global Lakes Ecological Obser
 +--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
 | Ecological Society of America                          | 50                                     | In-person                           | Terrestrial          |
 |                                                        |                                        |                                     |                      |
-| Annual conference workshop                             |                                        |                                     |                      |
+| conference                                             |                                        |                                     |                      |
 +--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
 | Graduate environmental data science class              | 40                                     | In-person                           | Terrestrial/Aquatics |
++--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
+| Ecological Forecasting Initiative conference           | 20                                     | In-person                           | Aquatics             |
 +--------------------------------------------------------+----------------------------------------+-------------------------------------+----------------------+
 
 : Table 1 Implementation of the tutorial by the authors across a range of settings. The participants in these workshops covered a wide range of forecasting and coding experience.
