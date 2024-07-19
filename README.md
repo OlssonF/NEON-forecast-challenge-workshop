@@ -59,17 +59,19 @@ The hands-on materials are split into three sections:
 2.  `Automate_forecasts` - you've made a model and submitted a forecast successfully? Automate your workflow to submit a new forecast every day
 3.  `Analyse_scores` - interested in knowing how different forecasts are performing within the Challenge? This is a brief introduction in how to access the scored forecasts and do some simple analyses.
 
-For a 90-minute workshop, the hands-on R markdown walk through uses the materials in the `Submit_forecast` directory (30-40 minutes). The Rmarkdown includes descriptive text to reinforce some of the ideas introduced in the presentation and guides participants through the stages of forecast development from importing 'target' data (observations), plotting and investigating data, developing a model, generating a forecast, adjusting the format to Challenge standards, and submitting their forecast to the Challenge. 
+For a 90-minute workshop, the hands-on R markdown walk through uses the materials in the `Submit_forecast` directory (30-40 minutes). The Rmarkdown includes descriptive text to reinforce some of the ideas introduced in the presentation and guides participants through the stages of forecast development from importing 'target' data (observations), plotting and investigating data, developing a model, generating a forecast, adjusting the format to Challenge standards, and submitting their forecast to the Challenge.
 
-Materials in the other directories are recommended for later completion and cover more advanced topics (see Tutorial extension). 
+Materials in the other directories are recommended for later completion and cover more advanced topics (see Tutorial extension).
 
 ## 4. Open time
 
-For a standard 90-minute workshop, time at the end of the session can be used to debug user-specific code issues (package installation etc.), allow participants to modify the forecast model code available in the template (forecast_code_template.R), explore alternative forecast methods, or form forecasting teams to submit additional forecasts to the Challenge beyond the workshop session. Some potential topics and additional activities are detailed at the end of the Rmarkdown, including code for alternative forecasting methods or possible modifications to the example forecast. 
+For a standard 90-minute workshop, time at the end of the session can be used to debug user-specific code issues (package installation etc.), allow participants to modify the forecast model code available in the template (forecast_code_template.R), explore alternative forecast methods, or form forecasting teams to submit additional forecasts to the Challenge beyond the workshop session. Some potential topics and additional activities are detailed at the end of the Rmarkdown, including code for alternative forecasting methods or possible modifications to the example forecast.
 
 ## 5. Tutorial extension
 
 To extend the tutorial beyond 90 minutes, we have provided materials that walk participants through how forecast submission could be automated (`Automate_Forecast`). Automation is a crucial step for iterative, near-term ecological forecasting, and is highly encouraged when participating in the Challenge after completing the tutorial. Finally, materials are available that introduce participants to how a forecast is evaluated and how the scores (evaluated forecast performance) can be analysed (`Analyse_Scores`). These materials could also be used in a self-paced manner after a workshop.
+
+------------------------------------------------------------------------
 
 ### Optional: Use Docker
 
