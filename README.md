@@ -53,15 +53,15 @@ An introductory presentation that covers key forecasting concepts and a broad in
 
 ## 3. Coding walk-through
 
-The hands-on materials are split into three sections:
+The hands-on materials are split into three sections, each in a separate subfolder:
 
-1.  `Submit_forecast` - want to get started with making and submitting forecasts to the Challenge - start here!
-2.  `Automate_forecasts` - you've made a model and submitted a forecast successfully? Automate your workflow to submit a new forecast every day
-3.  `Analyse_scores` - interested in knowing how different forecasts are performing within the Challenge? This is a brief introduction in how to access the scored forecasts and do some simple analyses.
+1.  [`Submit_forecast`](Submit_forecast) - want to get started with making and submitting forecasts to the Challenge - start here!
+2.  [`Automate_forecasts`](Automate_forecasts) - you've made a model and submitted a forecast successfully? Automate your workflow to submit a new forecast every day
+3.  [`Analyse_scores`](Automate_forecasts) - interested in knowing how different forecasts are performing within the Challenge? This is a brief introduction in how to access the scored forecasts and do some simple analyses.
 
 For a 90-minute workshop, the hands-on R markdown walk through uses the materials in the `Submit_forecast` directory (30-40 minutes). The Rmarkdown includes descriptive text to reinforce some of the ideas introduced in the presentation and guides participants through the stages of forecast development from importing 'target' data (observations), plotting and investigating data, developing a model, generating a forecast, adjusting the format to Challenge standards, and submitting their forecast to the Challenge.
 
-Materials in the other directories are recommended for later completion and cover more advanced topics (see Tutorial extension).
+Materials in the other directories are recommended for later completion and cover more advanced topics - see [Tutorial extension](#5-tutorial-extension) section below.
 
 ## 4. Open time
 
