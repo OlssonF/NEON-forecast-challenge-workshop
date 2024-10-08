@@ -190,9 +190,9 @@ The 3 types of data are as follows:
 -   stage_2: a processed version of Stage 1 in which fluxes are standardized to per second rates, fluxes and states are interpolated to 1 hour intervals and variables are renamed to match conventions. We recommend this for obtaining future weather. Future weather forecasts include a 30-member ensemble of equally likely future weather conditions.
 -   stage_3: can be viewed as the "historical" weather and is combination of day 1 weather forecasts (i.e., when the forecasts are most accurate).
 
-This code create a connection to the dataset hosted on the eco4cast server using `arrow` functions.
+This code creates a connection to the dataset hosted on the eco4cast server using `arrow` functions.
 To download the data you have to tell the function to `collect()` it.
-These data set can be subsetted and filtered using `dplyr` functions prior to download to limit the memory usage.
+These data sets can be subset and filtered using `dplyr` functions prior to download to limit the memory usage.
 
 You can read more about the NOAA forecasts available for the NEON sites [here:](https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html)
 
@@ -219,7 +219,7 @@ noaa_past <- noaa_past_s3  |>
 noaa_past
 ```
 
-This is a stacked ensemble forecast of the one day ahead forecasts.
+This is a stacked ensemble of the one day ahead forecasts.
 To get an estimate of the historic conditions we can take a mean of these ensembles.
 We will also need to convert the temperatures to Celsius from Kelvin.
 
@@ -329,8 +329,8 @@ forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_futur
 
 ```
 
-We can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature.
-We can run this forecast for each site and then bind them together to submit as one forecast.
+Next, we will can loop through this for each site to create a site-wise forecast of water temperature based on a linear model and each forecasted air temperature.
+After we run this forecast for each site, we will bind them together to submit as one forecast.
 
 ## Specify forecast model
 
@@ -367,7 +367,7 @@ for(i in 1:length(lake_sites$field_site_id)) {
 }
 ```
 
-We now have 31 possible forecasts of water temperature at each site and each day.
+We now have 31 possible forecasts of water temperature at each site and each day, one for each air of the ensemble temperature forecasts.
 On this plot each line represents one of the possible forecasts and the range of forecasted water temperature is a simple quantification of the uncertainty in our forecast.
 
 Looking back at the forecasts we produced:
@@ -826,7 +826,7 @@ RW_forecast %>%
         plot.subtitle = element_text(colour = 'green')) 
 ```
 
-The forecast output from `fable` needs modifying slightly to fit the Challenge standards.
+The forecast output from `fable` needs slight modification to fit the Challenge standards.
 
 ```{r}
 model_name <- 'example_RW'
