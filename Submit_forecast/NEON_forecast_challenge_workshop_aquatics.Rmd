@@ -221,7 +221,7 @@ noaa_past
 
 This is a stacked ensemble of the one day ahead forecasts.
 To get an estimate of the historic conditions we can take a mean of these ensembles.
-We will also need to convert the temperatures to Celsius from Kelvin.
+We will also convert the temperatures from Kelvin to Celsius so that the values are on a familiar scale.
 
 ```{r}
 # aggregate the past to mean values
