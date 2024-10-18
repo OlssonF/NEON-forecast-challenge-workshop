@@ -8,7 +8,7 @@ The tutorial is designed as a 90-minute, standalone session that includes an int
 
 ### Setting up your R environment
 
-R version 4.2 is required to run the code in this workshop. You should also check that your Rtools is up to date and compatible with R 4.2, see (<https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html>).
+R version 4.2 is required to run the code in this workshop. You should also check that your Rtools is up to date and compatible with R 4.2, see (<https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html>). Although instructions assume users have Rstudio installed, this is  not a strict requirement. 
 
 The following packages need to be installed using the following code.
 
@@ -26,7 +26,7 @@ There are 3 options for getting the code locally so that you can run it, dependi
 1.  **Fork (recommended)** the repository to your Github and then clone the repository from your Github repository to a local RStudio project. This will allow you to modify the scripts and push it back to your Github.
 
 -   Find the fork button in the top right of the webpage --\> Create Fork. This will generate a copy of this repository in your Github.
--   Then use the \<\> Code button to copy the HTTPS link (from you Github!).
+-   Then use the \<\> Code button to copy the HTTPS link (from your Github!).
 -   In RStudio, go to New Project --\> Version Control --\> Git.
 -   Paste the HTTPS link in the Repository URL space, and choose a suitable location for your local repository --\> Create Project.
 -   Open the .Rmd file
@@ -49,23 +49,23 @@ For the workshop you can follow along via the rmarkdown document (`Submit_foreca
 
 ## 2. Introductory presentation
 
-An introductory presentation that covers key forecasting concepts and a broad introduction the the Challenge and NEON data is available as both a PowerPoint or PDF. This presentation can be tailored to the audience based on expected familiarity with forecasting concepts and the data being forecasted.
+An introductory presentation that covers key forecasting concepts and a broad introduction the the Challenge and NEON data is provided with this repository as both a [PowerPoint](Introductory_presentation.pptx) and a [PDF](Introductory_presentation.pptx). This presentation can be tailored to the audience based on expected familiarity with forecasting concepts and the data being forecasted.
 
 ## 3. Coding walk-through
 
-The hands-on materials are split into three sections:
+The hands-on materials are split into three sections, each in a separate subfolder:
 
-1.  `Submit_forecast` - want to get started with making and submitting forecasts to the Challenge - start here!
-2.  `Automate_forecasts` - you've made a model and submitted a forecast successfully? Automate your workflow to submit a new forecast every day
-3.  `Analyse_scores` - interested in knowing how different forecasts are performing within the Challenge? This is a brief introduction in how to access the scored forecasts and do some simple analyses.
+1.  [`Submit_forecast`](Submit_forecast) - want to get started with making and submitting forecasts to the Challenge - start here!
+2.  [`Automate_forecasts`](Automate_forecasts) - you've made a model and submitted a forecast successfully? Automate your workflow to submit a new forecast every day
+3.  [`Analyse_scores`](Automate_forecasts) - interested in knowing how different forecasts are performing within the Challenge? This is a brief introduction in how to access the scored forecasts and do some simple analyses.
 
 For a 90-minute workshop, the hands-on R markdown walk through uses the materials in the `Submit_forecast` directory (30-40 minutes). The Rmarkdown includes descriptive text to reinforce some of the ideas introduced in the presentation and guides participants through the stages of forecast development from importing 'target' data (observations), plotting and investigating data, developing a model, generating a forecast, adjusting the format to Challenge standards, and submitting their forecast to the Challenge.
 
-Materials in the other directories are recommended for later completion and cover more advanced topics (see Tutorial extension).
+Materials in the other directories are recommended for later completion and cover more advanced topics - see [Tutorial extension](#5-tutorial-extension) section below.
 
 ## 4. Open time
 
-For a standard 90-minute workshop, time at the end of the session can be used to debug user-specific code issues (package installation etc.), allow participants to modify the forecast model code available in the template (forecast_code_template.R), explore alternative forecast methods, or form forecasting teams to submit additional forecasts to the Challenge beyond the workshop session. Some potential topics and additional activities are detailed at the end of the Rmarkdown, including code for alternative forecasting methods or possible modifications to the example forecast.
+For a standard 90-minute workshop, time at the end of the session can be used to debug user-specific code issues (package installation etc.), allow participants to modify the forecast model code available in the template ([Submit_forecast/forecast_code_template.R](Submit_forecast/forecast_code_template.R), explore alternative forecast methods, or form forecasting teams to submit additional forecasts to the Challenge beyond the workshop session. Some potential topics and additional activities are detailed at the end of the Rmarkdown, including code for alternative forecasting methods or possible modifications to the example forecast.
 
 ## 5. Tutorial extension
 
@@ -75,7 +75,7 @@ To extend the tutorial beyond 90 minutes, we have provided materials that walk p
 
 ### Optional: Use Docker
 
-Analternative to running the materials locally, is to use a Docker container that has all the packages pre-installed.
+An alternative to running the materials locally, is to use a Docker container that has all the packages pre-installed.
 
 #### Installing Docker
 
