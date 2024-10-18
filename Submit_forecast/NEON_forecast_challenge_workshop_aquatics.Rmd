@@ -93,7 +93,7 @@ For a distribution forecast, the `family` column uses the word `normal` to desig
 For forecasts that don't have a normal distribution we recommend using the ensemble format and sampling from your non-normal distribution to generate a set of ensemble members that represents your distribution.
 I will go through examples of both `ensemble` and `normal` forecasts as examples.
 
-The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html).
+The full list of required columns and format can be found in the [Challenge documentation](https://projects.ecoforecast.org/neon4cast-ci/instructions.html).
 
 # The forecasting workflow
 
@@ -108,8 +108,7 @@ Here is how you read in the data from the targets file available from the EFI se
 targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aquatics-targets.csv.gz')
 ```
 
-Information on the NEON sites can be found in the `NEON_Field_Site_Metadata_20220412.csv` file on GitHub.
-It can be filtered to only include aquatic sites.
+Information on the NEON sites can be found in the `NEON_Field_Site_Metadata_20220412.csv` file in the `eco4cast` repository on GitHub. It can be filtered to only include aquatic sites.
 This table has information about the field sites, including location, ecoregion, information about the watershed (e.g. elevation, mean annual precipitation and temperature), and lake depth.
 
 ```{r eval=TRUE, echo = TRUE, error=FALSE, warning=FALSE, message=FALSE}
@@ -495,7 +494,7 @@ Remember to change the `model_id` so we can differentiate different forecasts!
 ## Register your participation
 
 It's really important that once you start submitting forecasts to the Challenge that you register your participation.
-We ask that you complete this [form](https://nd.qualtrics.com/jfe/form/SV_9MJ29y2xNrBOjqZ) which asks you some simple questions about your forecast and team.
+We ask that you complete this [form](https://forms.gle/kg2Vkpho9BoMXSy57) which asks you some simple questions about your forecast and team.
 This is crucial for a couple of reasons:
 
 1.  We can keep track different forecast submissions during the scoring process to see which forecast is performing the best. Your `model_id` will be used to track the submissions so any new forecast model requires a new `model_id`.
