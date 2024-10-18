@@ -8,7 +8,7 @@ The tutorial is designed as a 90-minute, standalone session that includes an int
 
 ### Setting up your R environment
 
-R version 4.2 is required to run the code in this workshop. You should also check that your Rtools is up to date and compatible with R 4.2, see (<https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html>). Although instructions assume users have Rstudio installed, this is  not a strict requirement. 
+R version 4.2 is required to run the code in this workshop. You should also check that your Rtools is up to date and compatible with R 4.2, see (<https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html>). Although instructions assume users have Rstudio installed, this is not a strict requirement.
 
 The following packages need to be installed using the following code.
 
@@ -101,3 +101,23 @@ This can take a few minutes to download and install. It will be quicker the next
 You can close this localhost window (and then come back to it) but if you close the container from Docker (turn off your computer etc.) any changes will be lost unless you push them to Github or exported to your local environment.
 
 Then follow the instructions for Getting the Code above (`2. Get the Code`).
+
+#### Note for Mac users
+
+If you are running Docker on ARM architecture (e.g., Apple Silicon M chips), the following Docker command is needed
+
+```         
+docker run --platform linux/amd64 --rm -ti -e PASSWORD=yourpassword -p 8787:8787 eco4cast/rocker-neon4cast
+```
+
+If you are using macOS Sequoia (and future macOS versions), you may get this error:
+
+```         
+rosetta error: Rosetta is only intended to run on Apple Silicon with a macOS host using Virtualization.framework with Rosetta mode enabled
+```
+
+If you get this error, you will need to install `rosetta` before running the docker command above.
+
+```         
+softwareupdate --install-rosetta
+```
