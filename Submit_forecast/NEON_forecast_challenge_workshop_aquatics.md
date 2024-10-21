@@ -133,7 +133,7 @@ library(lubridate)
 If you do not wish to run the code yourself you can follow along via the
 html (NEON_forecast_challenge_workshop.md), which can be downloaded from
 the [Github
-repository](https://github.com/OlssonF/NEON-forecast-challenge-workshop).
+repository](https://github.com/eco4cast/NEON-forecast-challenge-workshop).
 
 # 2 Introduction to NEON forecast challenge
 
@@ -192,7 +192,7 @@ examples of both `ensemble` and `normal` forecasts as examples.
 
 The full list of required columns and format can be found in the
 [Challenge
-documentation](https://projects.ecoforecast.org/neon4cast-docs/Submission-Instructions.html).
+documentation](https://projects.ecoforecast.org/neon4cast-ci/instructions.html).
 
 # 3 The forecasting workflow
 
@@ -209,11 +209,11 @@ targets <- read_csv('https://data.ecoforecast.org/neon4cast-targets/aquatics/aqu
 ```
 
 Information on the NEON sites can be found in the
-`NEON_Field_Site_Metadata_20220412.csv` file on GitHub. It can be
-filtered to only include aquatic sites. This table has information about
-the field sites, including location, ecoregion, information about the
-watershed (e.g. elevation, mean annual precipitation and temperature),
-and lake depth.
+`NEON_Field_Site_Metadata_20220412.csv` file in the `eco4cast`
+repository on GitHub. It can be filtered to only include aquatic sites.
+This table has information about the field sites, including location,
+ecoregion, information about the watershed (e.g. elevation, mean annual
+precipitation and temperature), and lake depth.
 
 ``` r
 # read in the sites data
@@ -310,9 +310,9 @@ sites. The 3 types of data are as follows:
     combination of day 1 weather forecasts (i.e., when the forecasts are
     most accurate).
 
-This code create a connection to the dataset hosted on the eco4cast
+This code creates a connection to the dataset hosted on the eco4cast
 server using `arrow` functions. To download the data you have to tell
-the function to `collect()` it. These data set can be subsetted and
+the function to `collect()` it. These data sets can be subset and
 filtered using `dplyr` functions prior to download to limit the memory
 usage.
 
@@ -343,26 +343,26 @@ noaa_past <- noaa_past_s3  |>
 noaa_past
 ```
 
-    ## # A tibble: 7,260,169 × 7
+    ## # A tibble: 7,749,721 × 7
     ##    parameter datetime            variable   prediction family reference_datetime
     ##        <dbl> <dttm>              <chr>           <dbl> <chr>  <lgl>             
-    ##  1         0 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ##  2         1 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ##  3         2 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ##  4         3 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
+    ##  1         0 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
+    ##  2         1 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
+    ##  3         2 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
+    ##  4         3 2020-09-24 00:00:00 air_tempe…       292. ensem… NA                
     ##  5         4 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
     ##  6         5 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ##  7         6 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ##  8         7 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ##  9         8 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ## 10         9 2020-09-24 00:00:00 air_tempe…       290. ensem… NA                
-    ## # ℹ 7,260,159 more rows
+    ##  7         6 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
+    ##  8         7 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
+    ##  9         8 2020-09-24 00:00:00 air_tempe…       292. ensem… NA                
+    ## 10         9 2020-09-24 00:00:00 air_tempe…       291. ensem… NA                
+    ## # ℹ 7,749,711 more rows
     ## # ℹ 1 more variable: site_id <chr>
 
-This is a stacked ensemble forecast of the one day ahead forecasts. To
-get an estimate of the historic conditions we can take a mean of these
-ensembles. We will also need to convert the temperatures to Celsius from
-Kelvin.
+This is a stacked ensemble of the one day ahead forecasts. To get an
+estimate of the historic conditions we can take a mean of these
+ensembles. We will also convert the temperatures from Kelvin to Celsius
+so that the values are on a familiar scale.
 
 ``` r
 # aggregate the past to mean values
@@ -426,16 +426,16 @@ noaa_future_daily
     ## # Groups:   datetime, site_id, parameter [7,595]
     ##    datetime   site_id air_temperature parameter
     ##    <date>     <chr>             <dbl>     <dbl>
-    ##  1 2024-07-19 BARC               29.8         0
-    ##  2 2024-07-19 BARC               30.4         1
-    ##  3 2024-07-19 BARC               30.0         2
-    ##  4 2024-07-19 BARC               29.7         3
-    ##  5 2024-07-19 BARC               29.6         4
-    ##  6 2024-07-19 BARC               30.1         5
-    ##  7 2024-07-19 BARC               28.9         6
-    ##  8 2024-07-19 BARC               29.4         7
-    ##  9 2024-07-19 BARC               29.5         8
-    ## 10 2024-07-19 BARC               29.6         9
+    ##  1 2024-10-21 BARC               20.9         0
+    ##  2 2024-10-21 BARC               21.3         1
+    ##  3 2024-10-21 BARC               21.7         2
+    ##  4 2024-10-21 BARC               19.9         3
+    ##  5 2024-10-21 BARC               20.5         4
+    ##  6 2024-10-21 BARC               22.3         5
+    ##  7 2024-10-21 BARC               21.2         6
+    ##  8 2024-10-21 BARC               22.1         7
+    ##  9 2024-10-21 BARC               21.1         8
+    ## 10 2024-10-21 BARC               21.5         9
     ## # ℹ 7,585 more rows
 
 Now we have a timeseries of historic data and a 30 member ensemble
@@ -507,10 +507,10 @@ fit <- lm(site_target$temperature ~ site_target$air_temperature)
 forecasted_temperature <- fit$coefficients[1] + fit$coefficients[2] * noaa_future_site$air_temperature
 ```
 
-We can loop through this for each site to create a site-wise forecast of
-water temperature based on a linear model and each forecasted air
-temperature. We can run this forecast for each site and then bind them
-together to submit as one forecast.
+Next, we will can loop through this for each site to create a site-wise
+forecast of water temperature based on a linear model and each
+forecasted air temperature. After we run this forecast for each site, we
+will bind them together to submit as one forecast.
 
 ## 5.1 Specify forecast model
 
@@ -562,9 +562,10 @@ for(i in 1:length(lake_sites$field_site_id)) {
     ## TOOK temperature forecast run
 
 We now have 31 possible forecasts of water temperature at each site and
-each day. On this plot each line represents one of the possible
-forecasts and the range of forecasted water temperature is a simple
-quantification of the uncertainty in our forecast.
+each day, one for each air of the ensemble temperature forecasts. On
+this plot each line represents one of the possible forecasts and the
+range of forecasted water temperature is a simple quantification of the
+uncertainty in our forecast.
 
 Looking back at the forecasts we produced:
 
@@ -638,7 +639,7 @@ forecast_file_1 <- paste(theme, date, forecast_name_1, sep = '-')
 forecast_file_1
 ```
 
-    ## [1] "aquatics-2024-07-19-example_ID.csv"
+    ## [1] "aquatics-2024-10-21-example_ID.csv"
 
 ``` r
 write_csv(temp_lm_forecast_EFI,forecast_file_1)
@@ -646,7 +647,7 @@ write_csv(temp_lm_forecast_EFI,forecast_file_1)
 neon4cast::forecast_output_validator(forecast_file_1)
 ```
 
-    ## aquatics-2024-07-19-example_ID.csv
+    ## aquatics-2024-10-21-example_ID.csv
 
     ## ✔ file has model_id column
     ## ✔ forecasted variables found correct variable + prediction column
@@ -703,9 +704,9 @@ forecasts!
 
 It’s really important that once you start submitting forecasts to the
 Challenge that you register your participation. We ask that you complete
-this [form](https://nd.qualtrics.com/jfe/form/SV_9MJ29y2xNrBOjqZ) which
-asks you some simple questions about your forecast and team. This is
-crucial for a couple of reasons:
+this [form](https://forms.gle/kg2Vkpho9BoMXSy57) which asks you some
+simple questions about your forecast and team. This is crucial for a
+couple of reasons:
 
 1.  We can keep track different forecast submissions during the scoring
     process to see which forecast is performing the best. Your
@@ -809,7 +810,7 @@ targets |>
   pull()
 ```
 
-    ## [1] "2024-07-17"
+    ## [1] "2024-10-19"
 
 Specifying the model and forecasts in this way would be fine if we have
 data observed to yesterday but this often isn’t the case. For the NEON
@@ -842,13 +843,13 @@ forecast_starts
     ## # A tibble: 7 × 4
     ##   site_id variable    reference_datetime h      
     ##   <chr>   <chr>       <date>             <drtn> 
-    ## 1 BARC    temperature 2024-07-18         31 days
-    ## 2 CRAM    temperature 2024-07-18         31 days
-    ## 3 LIRO    temperature 2024-07-18         31 days
-    ## 4 PRLA    temperature 2024-07-18         31 days
-    ## 5 PRPO    temperature 2024-07-18         31 days
-    ## 6 SUGG    temperature 2024-07-18         31 days
-    ## 7 TOOK    temperature 2024-07-18         31 days
+    ## 1 BARC    temperature 2024-10-20         31 days
+    ## 2 CRAM    temperature 2024-10-20         31 days
+    ## 3 LIRO    temperature 2024-10-20         31 days
+    ## 4 PRLA    temperature 2024-10-20         31 days
+    ## 5 PRPO    temperature 2024-10-20         31 days
+    ## 6 SUGG    temperature 2024-10-20         31 days
+    ## 7 TOOK    temperature 2024-09-19         62 days
 
 You can see that the sites have different start dates, based on when the
 last observation was taken. We want to fit each site (and variable)
@@ -1023,16 +1024,16 @@ RW_forecast %>%
     ## # Key:       variable, site_id, .model, .rep [200]
     ##    variable    site_id .model datetime   .rep   .sim
     ##    <chr>       <chr>   <chr>  <date>     <chr> <dbl>
-    ##  1 temperature SUGG    RW     2024-07-18 1      30.5
-    ##  2 temperature SUGG    RW     2024-07-19 1      30.5
-    ##  3 temperature SUGG    RW     2024-07-20 1      30.7
-    ##  4 temperature SUGG    RW     2024-07-21 1      30.8
-    ##  5 temperature SUGG    RW     2024-07-22 1      32.2
-    ##  6 temperature SUGG    RW     2024-07-23 1      32.3
-    ##  7 temperature SUGG    RW     2024-07-24 1      31.8
-    ##  8 temperature SUGG    RW     2024-07-25 1      33.0
-    ##  9 temperature SUGG    RW     2024-07-26 1      32.2
-    ## 10 temperature SUGG    RW     2024-07-27 1      31.7
+    ##  1 temperature SUGG    RW     2024-10-20 1      21.4
+    ##  2 temperature SUGG    RW     2024-10-21 1      21.3
+    ##  3 temperature SUGG    RW     2024-10-22 1      21.0
+    ##  4 temperature SUGG    RW     2024-10-23 1      19.8
+    ##  5 temperature SUGG    RW     2024-10-24 1      19.0
+    ##  6 temperature SUGG    RW     2024-10-25 1      19.2
+    ##  7 temperature SUGG    RW     2024-10-26 1      19.3
+    ##  8 temperature SUGG    RW     2024-10-27 1      19.1
+    ##  9 temperature SUGG    RW     2024-10-28 1      19.2
+    ## 10 temperature SUGG    RW     2024-10-29 1      19.0
     ## # ℹ 6,190 more rows
 
 How reasonable are these forecasts?? Is there a way to improve the
@@ -1085,7 +1086,7 @@ alt="annotated forecasts" />
 <figcaption aria-hidden="true">annotated forecasts</figcaption>
 </figure>
 
-The forecast output from `fable` needs modifying slightly to fit the
+The forecast output from `fable` needs slight modification to fit the
 Challenge standards.
 
 ``` r
@@ -1107,12 +1108,12 @@ Now we have a forecast that can be submitted to the EFI challenge.
     ## # Key:       site_id, parameter, variable [1]
     ##   model_id   datetime   reference_datetime site_id family   parameter variable  
     ##   <chr>      <date>     <date>             <chr>   <chr>    <chr>     <chr>     
-    ## 1 example_RW 2024-07-20 2024-07-19         BARC    ensemble 1         temperatu…
-    ## 2 example_RW 2024-07-21 2024-07-19         BARC    ensemble 1         temperatu…
-    ## 3 example_RW 2024-07-22 2024-07-19         BARC    ensemble 1         temperatu…
-    ## 4 example_RW 2024-07-23 2024-07-19         BARC    ensemble 1         temperatu…
-    ## 5 example_RW 2024-07-24 2024-07-19         BARC    ensemble 1         temperatu…
-    ## 6 example_RW 2024-07-25 2024-07-19         BARC    ensemble 1         temperatu…
+    ## 1 example_RW 2024-10-22 2024-10-21         BARC    ensemble 1         temperatu…
+    ## 2 example_RW 2024-10-23 2024-10-21         BARC    ensemble 1         temperatu…
+    ## 3 example_RW 2024-10-24 2024-10-21         BARC    ensemble 1         temperatu…
+    ## 4 example_RW 2024-10-25 2024-10-21         BARC    ensemble 1         temperatu…
+    ## 5 example_RW 2024-10-26 2024-10-21         BARC    ensemble 1         temperatu…
+    ## 6 example_RW 2024-10-27 2024-10-21         BARC    ensemble 1         temperatu…
     ## # ℹ 1 more variable: prediction <dbl>
 
 ### 6.1.2 Write the forecast to file
@@ -1148,7 +1149,7 @@ for submitting, scoring and reading forecasts:
 neon4cast::forecast_output_validator(file.path('Forecasts', forecast_file_2))
 ```
 
-    ## Forecasts/aquatics-2024-07-19-example_RW.csv
+    ## Forecasts/aquatics-2024-10-21-example_RW.csv
 
     ## ✔ file has model_id column
     ## ✔ forecasted variables found correct variable + prediction column
@@ -1234,16 +1235,16 @@ SN_forecast
     ## # Key:     variable, site_id, .model [7]
     ##    variable    site_id .model datetime   observation .mean
     ##    <chr>       <chr>   <chr>  <date>          <dist> <dbl>
-    ##  1 temperature BARC    SN     2024-07-20  N(33, 3.9)  32.8
-    ##  2 temperature BARC    SN     2024-07-21  N(33, 3.9)  32.6
-    ##  3 temperature BARC    SN     2024-07-22  N(32, 3.9)  32.2
-    ##  4 temperature BARC    SN     2024-07-23  N(32, 3.9)  31.8
-    ##  5 temperature BARC    SN     2024-07-24  N(32, 3.9)  31.7
-    ##  6 temperature BARC    SN     2024-07-25  N(32, 3.9)  31.7
-    ##  7 temperature BARC    SN     2024-07-26  N(32, 3.9)  31.8
-    ##  8 temperature BARC    SN     2024-07-27  N(32, 3.9)  31.5
-    ##  9 temperature BARC    SN     2024-07-28  N(32, 3.9)  31.6
-    ## 10 temperature BARC    SN     2024-07-29  N(32, 3.9)  31.9
+    ##  1 temperature BARC    SN     2024-10-22  N(24, 3.8)  24.0
+    ##  2 temperature BARC    SN     2024-10-23  N(24, 3.8)  23.9
+    ##  3 temperature BARC    SN     2024-10-24  N(24, 3.8)  23.9
+    ##  4 temperature BARC    SN     2024-10-25  N(24, 3.8)  24.0
+    ##  5 temperature BARC    SN     2024-10-26  N(24, 3.8)  24.1
+    ##  6 temperature BARC    SN     2024-10-27  N(24, 3.8)  24.3
+    ##  7 temperature BARC    SN     2024-10-28  N(24, 3.8)  24.5
+    ##  8 temperature BARC    SN     2024-10-29  N(25, 3.8)  24.7
+    ##  9 temperature BARC    SN     2024-10-30  N(25, 3.8)  25.0
+    ## 10 temperature BARC    SN     2024-10-31  N(25, 3.8)  24.5
     ## # ℹ 200 more rows
 
 The output from this function is a `fable`. The prediction are held in
@@ -1306,16 +1307,16 @@ SN_forecast_EFI <- convert_to_efi_standard(SN_forecast,
     ## # Key:       site_id, parameter [14]
     ##    model_id      datetime   reference_datetime site_id family parameter variable
     ##    <chr>         <date>     <date>             <chr>   <chr>  <chr>     <chr>   
-    ##  1 example_clim… 2024-07-20 2024-07-19         BARC    normal mu        tempera…
-    ##  2 example_clim… 2024-07-20 2024-07-19         BARC    normal sigma     tempera…
-    ##  3 example_clim… 2024-07-21 2024-07-19         BARC    normal mu        tempera…
-    ##  4 example_clim… 2024-07-21 2024-07-19         BARC    normal sigma     tempera…
-    ##  5 example_clim… 2024-07-22 2024-07-19         BARC    normal mu        tempera…
-    ##  6 example_clim… 2024-07-22 2024-07-19         BARC    normal sigma     tempera…
-    ##  7 example_clim… 2024-07-23 2024-07-19         BARC    normal mu        tempera…
-    ##  8 example_clim… 2024-07-23 2024-07-19         BARC    normal sigma     tempera…
-    ##  9 example_clim… 2024-07-24 2024-07-19         BARC    normal mu        tempera…
-    ## 10 example_clim… 2024-07-24 2024-07-19         BARC    normal sigma     tempera…
+    ##  1 example_clim… 2024-10-22 2024-10-21         BARC    normal mu        tempera…
+    ##  2 example_clim… 2024-10-22 2024-10-21         BARC    normal sigma     tempera…
+    ##  3 example_clim… 2024-10-23 2024-10-21         BARC    normal mu        tempera…
+    ##  4 example_clim… 2024-10-23 2024-10-21         BARC    normal sigma     tempera…
+    ##  5 example_clim… 2024-10-24 2024-10-21         BARC    normal mu        tempera…
+    ##  6 example_clim… 2024-10-24 2024-10-21         BARC    normal sigma     tempera…
+    ##  7 example_clim… 2024-10-25 2024-10-21         BARC    normal mu        tempera…
+    ##  8 example_clim… 2024-10-25 2024-10-21         BARC    normal sigma     tempera…
+    ##  9 example_clim… 2024-10-26 2024-10-21         BARC    normal mu        tempera…
+    ## 10 example_clim… 2024-10-26 2024-10-21         BARC    normal sigma     tempera…
     ## # ℹ 410 more rows
     ## # ℹ 1 more variable: prediction <dbl>
 

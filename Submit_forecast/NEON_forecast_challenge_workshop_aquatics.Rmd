@@ -55,7 +55,7 @@ library(tidyverse)
 library(lubridate)
 ```
 
-If you do not wish to run the code yourself you can follow along via the html (NEON_forecast_challenge_workshop.md), which can be downloaded from the [Github repository](https://github.com/OlssonF/NEON-forecast-challenge-workshop).
+If you do not wish to run the code yourself you can follow along via the html (NEON_forecast_challenge_workshop.md), which can be downloaded from the [Github repository](https://github.com/eco4cast/NEON-forecast-challenge-workshop).
 
 # Introduction to NEON forecast challenge
 
