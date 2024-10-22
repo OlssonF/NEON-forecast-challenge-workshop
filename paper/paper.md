@@ -94,11 +94,11 @@ These objectives can be adapted depending on the context of the tutorial. If the
 
 ## Instructional design
 
-The R-based tutorial is in a public GitHub repository (@Olsson2023; <https://github.com/OlssonF/NEON-forecast-challenge-workshop>) that includes an introductory presentation (Microsoft PowerPoint or PDF format), Rmarkdown documents, rendered versions of the markdown files (.md), as well as pre-tutorial instructions for participants. The tutorial allows for both in-person and virtual participation (Table 1) and can be completed synchronously in an instructor-led workshop/course or asynchronously in a self-paced tutorial. 
+The R-based tutorial is in a public GitHub repository (@Olsson2023; <https://github.com/eco4cast/NEON-forecast-challenge-workshop>) that includes an introductory presentation (Microsoft PowerPoint or PDF format), Rmarkdown documents, rendered versions of the markdown files (.md), as well as pre-tutorial instructions for participants. The tutorial allows for both in-person and virtual participation (Table 1) and can be completed synchronously in an instructor-led workshop/course or asynchronously in a self-paced tutorial. 
 
 ## The tutorial
 
-The tutorial is designed as a 90-minute, standalone session that includes pre-tutorial materials, an introductory presentation (20-30 minutes), a guided demonstration of forecast code (30-40 minutes), and discussion (20-30 minutes). If more time is available, the tutorial has additional content that includes more advanced topics (Figure 1). Details on each of these sections is detailed in the workshop's README.md at the workshop GitHub repository (@Olsson2023; <https://github.com/OlssonF/NEON-forecast-challenge-workshop>).
+The tutorial is designed as a 90-minute, standalone session that includes pre-tutorial materials, an introductory presentation (20-30 minutes), a guided demonstration of forecast code (30-40 minutes), and discussion (20-30 minutes). If more time is available, the tutorial has additional content that includes more advanced topics (Figure 1). Details on each of these sections is detailed in the workshop's README.md at the workshop GitHub repository (@Olsson2023; <https://github.com/eco4cast/NEON-forecast-challenge-workshop>).
 
 1. Introductory presentation: introduces the participants to forecasting concepts, the Challenge, NEON data, and tools that will be used in the R coding portion of the tutorial. This presentation can be tailored to the audience based on their familiarity with forecasting concepts and NEON data (Figure 1).
 
