@@ -8,26 +8,28 @@ tags:
 authors:
   - name: Freya Olsson
     orcid: 0000-0002-0483-4489
-    affiliation: 1
+    affiliation: 1, 2
   - name: Carl Boettiger
     orcid: 0000-0002-1642-628X
-    affiliation: 2
+    affiliation: 3
   - name: Cayelan C. Carey
     orcid: 0000-0001-8835-4476
-    affiliation: 1  
+    affiliation: 1, 2  
   - name: Mary E. Lofton
     orcid: 0000-0003-3270-1330
-    affiliation: 1
+    affiliation: 1, 2
   - name: R. Quinn Thomas
     orcid: 0000-0003-1282-7825
-    affiliation: 1, 3
+    affiliation: 1, 2, 4
 affiliations:
- - name: Department of Biological Sciences, Virginia Tech, Blacksburg, Virginia, USA
+ - name: Center for Ecosystem Forecasting, Virginia Tech, Blacksburg, Virginia, USA
    index: 1
- - name: Department of Environmental Science, Policy, and Management, University of California, Berkeley, Berkeley, California, USA
+ - name: Department of Biological Sciences, Virginia Tech, Blacksburg, Virginia, USA
    index: 2
- - name: Department of Forest Resources and Environmental Conservation, Virginia Tech, Blacksburg, Virginia, USA
+ - name: Department of Environmental Science, Policy, and Management, University of California, Berkeley, Berkeley, California, USA
    index: 3
+ - name: Department of Forest Resources and Environmental Conservation, Virginia Tech, Blacksburg, Virginia, USA
+   index: 4
 date: 28 February 2024
 bibliography: paper.bib
 ---
