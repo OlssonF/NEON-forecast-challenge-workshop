@@ -1,3 +1,5 @@
+[![DOI](https://jose.theoj.org/papers/10.21105/jose.00259/status.svg)](https://doi.org/10.21105/jose.00259)
+
 # NEON Forecast Challenge Workshop Pre-Workshop Instructions
 
 This is a repository for materials to complete the NEON Ecological Forecasting Challenge tutorial. This tutorial repository is a dynamic repository and may change in future iterations.
