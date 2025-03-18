@@ -15,19 +15,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Background on scores and skill
 
-From the first part of the tutorial we have gone through a simple forecast submission workflow. This submits your forecast to an AWS bucket which will automatically undergo 'scoring', comparing your prediction (and the associated uncertainty) with the observations collected by NEON to produce score metrics. These scores tell us how well each model was able to reproduce the observations, with lower scores indicating higher performance (and lower error). 
+The Submit_forecast tutorial took you through gone through a simple forecast submission workflow to submit your forecast to an AWS bucket which will automatically undergo 'scoring', i.e. comparing your prediction (and the associated uncertainty) with the observations collected by NEON to produce score metrics. These scores tell us how well each model was able to reproduce the observations, with lower scores indicating higher performance (and lower error). 
 
-One useful consideration when thinking about forecast performance is to compare this with established null models. The null models for each theme varies (see the documentation), but often includes the persistence model and/or the DOY mean (climatology). The submitted model forecast performance relative to these null models is termed the forecast skill and is useful for understanding when and where a forecast model provides utility above and beyond a simple null model.
+One useful consideration when thinking about forecast performance is to compare your forecast scores with established null models. The null models for each theme varies (see the documentation), but often includes the persistence model and/or the historical day-of-year mean (climatology). The submitted model forecast performance relative to these null models is termed the *forecast skill* and is useful for understanding when and where a forecast model provides utility above and beyond a simple null model.
 
 
 # This tutorial
 
-In this tutorial, we will go through some simple steps to access, visualise and analyse your (and others') forecasts and scores so that we can start to understand how forecast performance varies among models, sites, and variables. We can think about this across the whole Challenge or within a particular theme. We will start with just the `aquatics` theme to start with but the process will be similar for most of the Challenge themes. 
+In this tutorial, we will go through some simple steps to access, visualise and analyse your (and others') forecasts and scores so that we can start to understand how forecast performance varies among models, sites, and variables. We can think about this across the whole Challenge or within a particular theme. We will start with just the `aquatics` theme to start with but the process will be similar for the other Challenge themes. 
 
 
 ## Setting up the repository
 
-We will start by setting up the work space and environment to be able to grab the files from the AWS buckets and having the relevant packages. First, we need to unset any environmental variables relating the AWS buckets to ensure we can access the right locations containing the forecast scores. We will also need the `tidyverse` and `arrow` packages, which can be installed here if you don't already have them.
+We will start by setting up the work space and environment to be able to grab the files from the AWS buckets and having the relevant packages. First, we need to unset any environmental variables relating the AWS buckets to ensure we can access the right locations containing the forecast scores (if for some reason you are accessing other AWS locations). We will also need the `tidyverse` and `arrow` packages, which can be installed here if you don't already have them.
 
 ```{r eval=F}
 # install required packages
@@ -52,26 +52,33 @@ options(dplyr.summarise.inform = FALSE)
 
 ## Connect to the bucket
 
-The first step is to connect to the relevant bucket in the neon4cast server. This use the `s3_bucket` function from `arrow`. We will point to the scores bucket that contain the evaluate temperature forecasts (the other variables have their scores in different location - for example to access the phenology scores you would go to `variable=gcc_90`). 
+The first step is to connect to the relevant bucket in the neon4cast server. To do this we will use the `s3_bucket` function from `arrow`. We will point to the scores bucket that contain the evaluated forecasts. This location contains all scores for all models across all variables. 
 
 ```{r}
 # connect to the scores bucket
-s3 <- arrow::s3_bucket(bucket = "bio230014-bucket01/challenges/scores/parquet/project_id=neon4cast/duration=P1D/", 
+s3 <- arrow::s3_bucket(bucket = "bio230014-bucket01/challenges/scores/bundled-parquet/project_id=neon4cast", 
                        endpoint_override= "sdsc.osn.xsede.org", 
                        anonymous = T)
 
 ```
 
-The object generated (`s3`), in an active binding to that bucket. These data are organised in a parquet data base which can be queried via the binding we have created before bringing data into the local environment. Note: this is a similar process to what you do when you use the `neon4cast::stage_2()` and `neon4cast::stage_3()` functions to get the NOAA weather forecasts (see other tutorial information).
+The object generated (`s3`), in an active binding to that bucket. These data are organised in a parquet data base which can be queried via the binding we have created before bringing data into the local environment. Note: this is a similar process to what you do when you use the `neon4cast::stage_2()` and `neon4cast::stage_3()` functions to get the NOAA weather forecasts (see other tutorial information). Each level within the database is termed a partition.
 
 
 ## Subsetting and collecting the scores
 
-The scores parquet database is organised by `model_id` -> `date`, but you can also subset based on the other variables that we included in the forecast such as `site_id`, `reference_datetime`, and `variable`. 
+The scores parquet database is organised by `duration` -> `variable` -> `model_id`, but you can also subset based on the other variables that we included in the forecast such as `site_id`, `reference_datetime`, and `variable`. 
 
 Once you have decided what forecast score you want to investigate you can filter based on these columns. For example you might only want particular forecast models (`model_id`), or forecasts generated on a particular day (`reference_datetime`), or forecasts of a particular date (`date`), or a combination of these things. 
 
 Tip: If you're not getting the data you want, make sure to note the column types when subsetting (character, timestamp, etc.).
+
+Here you can see the column types by opening up the data set using the `open_dataset()` function. 
+
+```{r}
+arrow::open_dataset(s3)
+```
+
 
 We will subset the score files by `model_id`, `site_id`, `variable`, and `reference_datetime`. 
 
@@ -90,11 +97,12 @@ get_sites <- c('BARC', 'SUGG')
 
 get_variables <- c('temperature', 'oxygen')
 ```
+
 We now have 4 vectors that we will filter the dataset by. Start by opening the dataset (`open_dataset`), then `filter` based on the above vectors. The final step is to `collect()` this into your local environment.  This process can be slow so be patient if you are fetching a large number of scores. 
 
 We will also calculate the forecast horizon for each time step. This will be the difference between the `datetime` and the date of forecast generation or the `reference_dateime`.
 
-```{r}
+```{r warning=FALSE}
 # connect to the bucket and grab the scores
 scores <- open_dataset(s3) |>
   filter(variable %in% get_variables,
@@ -109,11 +117,13 @@ scores <- open_dataset(s3) |>
 
 ```
 
-Tip: If you want to know what `datetime`s/`model_id`s/`site_id`s are avaialble you can use other `dplyr` functions to investigate the dataset. For example, to discover what `model_id`s are present on `2023-01-01` we can use `distinct`.
+Tip: If you want to know what `datetime`s/`model_id`s/`site_id`s are avaialble you can use other `dplyr` functions to investigate the dataset. For example, to discover what `model_id`s are present on `2023-01-01` fore `temperature` we can use `distinct`.
 
 ```{r eval = F}
+single_date_query <- as_datetime("2023-04-01")
 open_dataset(s3) |>
-  filter(reference_datetime == "2023-04-01") |> 
+  filter(reference_datetime == single_date_query,
+         variable == 'temperature') |> 
   distinct(model_id) |> 
   collect()
 ```
