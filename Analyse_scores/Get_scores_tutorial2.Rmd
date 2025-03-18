@@ -1,0 +1,262 @@
+---
+title: "Analysing your forecasts"
+author: "Freya Olsson"
+output:
+  md_document: 
+    variant: markdown_github
+    number_sections: true
+    toc: true
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Background on scores and skill
+
+The Submit_forecast tutorial took you through gone through a simple forecast submission workflow to submit your forecast to an AWS bucket which will automatically undergo 'scoring', i.e. comparing your prediction (and the associated uncertainty) with the observations collected by NEON to produce score metrics. These scores tell us how well each model was able to reproduce the observations, with lower scores indicating higher performance (and lower error). 
+
+One useful consideration when thinking about forecast performance is to compare your forecast scores with established null models. The null models for each theme varies (see the documentation), but often includes the persistence model and/or the historical day-of-year mean (climatology). The submitted model forecast performance relative to these null models is termed the *forecast skill* and is useful for understanding when and where a forecast model provides utility above and beyond a simple null model.
+
+
+# This tutorial
+
+In this tutorial, we will go through some simple steps to access, visualise and analyse your (and others') forecasts and scores so that we can start to understand how forecast performance varies among models, sites, and variables. We can think about this across the whole Challenge or within a particular theme. We will start with just the `aquatics` theme to start with but the process will be similar for the other Challenge themes. 
+
+## Working with arrow and parquet datasets
+
+Parquet files are a file type that are useful for organising large structured datasets. They can be accessed in similar ways to databases in which we run "queries" to access subsets of the dataset across multiple individual files. The NEON Challenge utilises this file format and you can access forecasts, drivers (NOAA forecasts), and scores from these parquet databases. 
+
+There are multiple ways to access and subset these large datasets and the way you do this impacts the number of files that are opened and then therefore the speed that the query takes.
+
+I'm going to show you a couple of examples of how you can query and look at the data.
+
+To start you need to identify the location of the data (this can be a local directory but for the NEON Challenge data it's on an S3 bucket/location). The dataset has been cataloged and is available on a [STAC catalog](https://radiantearth.github.io/stac-browser/#/external/raw.githubusercontent.com/eco4cast/neon4cast-ci/main/catalog/catalog.json). In here you navigate to one of the sections (Scores/Forecasts/...) and go to Assets \> Database acces \> Copy URL for S3.
+
+```{r s3-bucket}
+scores_location <- "s3://anonymous@bio230014-bucket01/challenges/scores/bundled-parquet/project_id=neon4cast?endpoint_override=sdsc.osn.xsede.org"
+```
+
+This is a long link that is comprised of a couple of important parts: 1. `anonymous` - doesn't require credentialed access 2. `bio230014-bucket01` - the name of the s3 bucket 3. the rest is info about the subsets of the data that can kind of be thought of like subdirectories within the top `challenges` bucket (this is for the scores data for the neon4cast project) 4. `endpoint_override` - the ultimate location of the bucket, remember for later!
+
+## Opening the bucket
+
+We can set the s3 bucket in our environment using the `arrow` package. We will also use tidyverse to do our queries (`select`/`filter`/`distinct` etc.)
+
+```{r packages}
+# install.package('arrow')
+# install.package('tidyverse')
+library(arrow)
+library(tidyverse)
+```
+
+We use the `arrow` package to tell the computer where to look for the data. We'll look at the scores using `open_dataset()`:
+
+```{r open-dataset}
+all_scores <- arrow::open_dataset(scores_location)
+```
+
+The object generated, `all_scores`, is an 'object containing active binding'...). This has created a connection to the dataset at the location you pointed to in `scores_location` which can then be queried (using `dplyr` functions) before bringing locally. This is what this object look like:
+
+```{r look-at-scores}
+all_scores
+```
+
+which shows it is a `FileSystemDataset with 448 Parquet files` and then lists the columns and the column types (these are things that can be queried).
+
+## Querying the database
+
+Rather than trying to get every score of every variable from every model we can subset the data. We use the `dplyr` functions and then `collect()` to do this. Here is an example of this first way of querying the bucket:
+
+```{r tidyverse-query, eval = F}
+variable_query <- 'temperature'
+site_id_query <- 'TOOK'
+model_id_query <- 'persistenceRW'
+reference_datetime_query <- as_date('2024-08-01') # needds to be a date format!
+
+# use the "object containing active binding"
+query_scores <- all_scores |> 
+  dplyr::filter(variable == variable_query, 
+                site_id == site_id_query, 
+                model_id == model_id_query,
+                reference_datetime == reference_datetime_query) |> 
+  collect() # needed to finish the query and bring locally, without this it will return info on how many parquet files the query returns
+
+
+```
+NOTE: I WOULD NOT RECOMMEND RUNNING THIS, IT IS SLOW AND POTENTIALLY TAKES A LONG AND MIGHT BREAK YOUR COMPUTER. This is very slow because it has to open every file and check to see if information in the file matches our query.
+
+Tip: If you're not getting the data you expect, make sure to note the column types when subsetting (character, timestamp, etc.).
+
+It also requires you to know in some ways what you are looking for. Some of this work by organisers by cataloging the information which you can navigate in a point and click way within the catalog (so you can browse). For the above example we can make it quicker by going into the model and variable of interest. So for persistenceRW for temperature that would be [here](https://radiantearth.github.io/stac-browser/#/external/raw.githubusercontent.com/eco4cast/neon4cast-ci/main/catalog/scores/Aquatics/Daily_Water_temperature/models/persistenceRW.json) and looking up the s3 location on the Database Access tab we can follow the same steps:
+
+```{r s3-bucket-defined}
+some_scores_location <- "s3://anonymous@bio230014-bucket01/challenges/scores/bundled-parquet/project_id=neon4cast/duration=P1D/variable=temperature/model_id=persistenceRW?endpoint_override=sdsc.osn.xsede.org"
+
+some_scores <- arrow::open_dataset(some_scores_location)
+
+some_scores
+```
+
+Now this is only 1 file! And the query should be quicker and less memory intensive. In the above example the location link is much longer and includes additional information on the duration, variable, and model_id. These are called __partitions__, and we can navigate to different levels within the partitions to speed up some querying. 
+
+Because you are already navigated to the `variable` and `model_id` levels that you are interested in you can remove these from the query:
+
+```{r new-tidyverse-query}
+# variable_query <- 'temperature' # no loner needed
+site_id_query <- 'TOOK'
+# model_id_query <- 'persistenceRW' # no longer needed
+reference_datetime_query <- as_date('2024-08-01') # needds to be a date format!
+
+# use the "object containing active binding"
+query_some_scores <- some_scores |> 
+  dplyr::filter(site_id == site_id_query, 
+                reference_datetime == reference_datetime_query) |> 
+  collect() # needed to finish the query and bring locally, without this it will return info on how many parquet files the query returns
+
+```
+
+This is a single site, single date score!
+
+```{r look-at-data}
+glimpse(query_some_scores)
+```
+
+We can inspect this data to see what we've got!
+
+Another useful thing to do is to look at what data are in there. For example, what are the reference_datetimes available at TOOK for persistenceRW. And for this we can use `distinct()` in our query:
+
+```{r distinct_example}
+some_scores |> 
+  dplyr::filter(site_id == site_id_query) |>
+  dplyr::distinct(reference_datetime) |> 
+  collect() |> head() # look at top rows only
+```
+
+Or what other sites are available on that same reference_datetime:
+
+```{r distinct_example2}
+some_scores |> 
+  dplyr::filter(reference_datetime == reference_datetime_query) |>
+  dplyr::distinct(site_id) |> 
+  collect() |> head() # look at top rows only
+```
+
+Note: use `pull(as_vector = TRUE)` instead of `collect()` to return a vector rather than a dataframe (can sometimes be a more useful format!).
+
+You could also do the same type of `distinct()` queries at higher partition levels (e.g. on the all_scores binding location) but it's going to be slow and memory intensive.
+
+Note: the deeper in and more specific your binding location, generally, the quicker the queries and collection (it's not opening so many files) but if you need multiple models or variables you will need to query using `filter()` instead. 
+
+These are the basics! But it can be tricky to know how far **into** a dataset you want to venture, how to identify those long binding locations. Here are some tricks to navigating the catalog that I've picked up.
+
+
+## Scores analysis
+
+Now we know how to access the data we will look at what types of analysis can be done with it. For this example, we will query the scores database for a number of model_ids, sites, dates, and variables:
+
+```{r}
+# these are the filters you will put in
+# the name of your models/the models you are interested in
+get_models <- c('persistenceRW', 'climatology', 'fARIMA') 
+
+# what period do you want the scores for?
+start_ref_date <- as_date('2024-05-31') 
+end_ref_date <- as_date('2024-06-30')
+get_refdates <-seq(start_ref_date, end_ref_date, by = 'day')
+
+# what sites?
+get_sites <- c('BARC', 'SUGG')
+
+# what variables?
+get_variables <- c('temperature', 'oxygen')
+```
+
+We now have 4 vectors that we will filter the dataset by. Start by opening the dataset (`open_dataset`), then `filter` based on the above vectors. The final step is to `collect()` this into your local environment.  This process can be slow so be patient if you are fetching a large number of scores. 
+
+We will also calculate the forecast horizon for each time step. This will be the difference between the `datetime` and the date of forecast generation or the `reference_dateime`.
+
+```{r warning=FALSE}
+# connect to the bucket and grab the scores
+scores_analysis <- all_scores |>
+  filter(variable %in% get_variables,
+         reference_datetime %in% get_refdates,
+         model_id %in% get_models,
+         site_id %in% get_sites) |> 
+  collect() |> 
+
+  # Note: this can be slow so be patient 
+  # The dataframe might also be very large depending on the filters you put in above
+  mutate(horizon = as.numeric(as_date(datetime) - as_date(reference_datetime)))
+
+```
+
+
+
+
+## Tips and tricks
+
+### Another way to access the same files
+
+We can also use the `s3_bucket()` function and the information above to access the data slightly differently. This will allow us to understand the set up of the file system and do a bit of snooping into what way the data are structured and start to develop other queries.
+
+```{r}
+s3_bucket <- arrow::s3_bucket(bucket = "bio230014-bucket01/challenges/scores/",
+                              endpoint_override = "sdsc.osn.xsede.org", # you can find this at the end of the open_dataset string above
+                              anonymous = T)
+
+s3_bucket
+```
+
+This opens a similar but slightly different active binding. This time instead of listing the contents it just lists the path. But we can open this in a different way that is quicker and helps you to understand the structure using the `ls()` base function.
+
+```{r}
+s3_bucket$ls()
+```
+
+I use this to tell me what the next level (or partition, kind of like a subdirectory but not quite) of the data set is, to help go 'deeper' into the dataset before setting a query.
+
+So for this example, within `scores` the next levels are either `bundled-parquet` or `parquet` - we'll look in the bundled for speed. If we go into the s3_bucket above and change the path...
+
+```{r}
+s3_bucket2 <- arrow::s3_bucket(bucket = "bio230014-bucket01/challenges/scores/bundled-parquet",
+                               endpoint_override = "sdsc.osn.xsede.org", 
+                               anonymous = T)
+
+s3_bucket2$ls()
+```
+
+We see that the next partition is `project_id=neon4cast` and then...
+
+```{r}
+s3_bucket3 <- arrow::s3_bucket(bucket = "bio230014-bucket01/challenges/scores/bundled-parquet/project_id=neon4cast",
+                               endpoint_override = "sdsc.osn.xsede.org", 
+                               anonymous = T)
+
+s3_bucket3$ls()
+```
+
+and so on... This is a useful way to investigate what is in the catalog (similar to browsing the STAC catalog but in R!). You can either use this to build the path that you then put into `open_dataset()` like above or you can pass the s3 bucket to the function using the pipes:
+
+```{r}
+arrow::s3_bucket(bucket = "bio230014-bucket01/challenges/scores/bundled-parquet/project_id=neon4cast/duration=P1D/variable=temperature/model_id=persistenceRW",
+                 endpoint_override = "sdsc.osn.xsede.org", 
+                 anonymous = T) |> 
+  arrow::open_dataset() |> 
+  dplyr::filter(reference_datetime == reference_datetime_query) |> 
+  collect() |> 
+  head()
+
+```
+
+Note: if you get the error
+
+```         
+Error: IOError: Path does not exist 'bio230014-bucket01/challenges/scores/bundled-parquet/project_id=neon4cast/duration=P1D/variable=temperature/model_id=persistence_RW/'. Detail: [errno 2] No such file or directory
+```
+
+you probably gave a path that doesn't exist (above I put persistence_RW instead of persistenceRW). Also look out for forgetting the partition name (e.g. model_id=) and missing a level of partitioning.
+
+Note: if you want to get data across partitions e.g. multiple model_id's you'll need to go in at the higher partition and then use the filter() to query.
