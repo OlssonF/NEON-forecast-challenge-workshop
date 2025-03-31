@@ -43,7 +43,7 @@ This is a long link that is comprised of a couple of important parts: 1. `anonym
 
 We can set the s3 bucket in our environment using the `arrow` package. We will also use tidyverse to do our queries (`select`/`filter`/`distinct` etc.)
 
-```{r packages, messages = F, warnings = F}
+```{r packages, message=FALSE, warning=FALSE}
 # install.package('arrow')
 # install.package('tidyverse')
 library(arrow)
